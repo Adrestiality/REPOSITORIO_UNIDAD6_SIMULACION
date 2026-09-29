@@ -1,3 +1,19 @@
+# Node.js
 node_modules/
-dist/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Sistema Operativo
 .DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE & Editores
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Bitácoras y temporales
+*.log
