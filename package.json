@@ -1,24 +1,17 @@
 {
-  "name": "repositorio_unidad6_simulacion",
+  "name": "forces-instrument-u3",
   "version": "1.0.0",
-  "description": "Simulación de Agentes Autónomos - Unidad 6 (UPB). Black Swan Score Visual con WebGL, Flow Field Gótico, Physarum y dat.gui.",
-  "main": "server.js",
+  "private": true,
+  "type": "module",
   "scripts": {
-    "dev": "node server.js",
-    "start": "node server.js",
-    "serve": "node server.js"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
   },
-  "keywords": [
-    "creative-coding",
-    "p5js",
-    "webgl",
-    "flocking",
-    "autonomous-agents",
-    "craig-reynolds",
-    "physarum",
-    "black-swan",
-    "upb"
-  ],
-  "author": "Sara Ruiz",
-  "license": "MIT"
+  "dependencies": {
+    "three": "0.185.1"
+  },
+  "devDependencies": {
+    "vite": "8.2.1"
+  }
 }
