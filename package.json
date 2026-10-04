@@ -1,17 +1,21 @@
 {
-  "name": "forces-instrument-u3",
+  "name": "repositorio_unidad6_simulacion",
   "version": "1.0.0",
-  "private": true,
-  "type": "module",
+  "description": "Simulación Poética 2D de Agentes Autónomos y Physarum - Unidad 6 (UPB). Black Swan Score Visual.",
+  "main": "server.js",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "dev": "node server.js",
+    "start": "node server.js",
+    "serve": "node server.js"
   },
-  "dependencies": {
-    "three": "0.185.1"
-  },
-  "devDependencies": {
-    "vite": "8.2.1"
-  }
+  "keywords": [
+    "creative-coding",
+    "p5js",
+    "physarum",
+    "autonomous-agents",
+    "black-swan",
+    "upb"
+  ],
+  "author": "Sara Ruiz",
+  "license": "MIT"
 }

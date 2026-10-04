@@ -36,9 +36,9 @@ class SimulationGUI {
       // Visualización & HUD
       showHUD: true,
 
-      // Parámetros de Agentes
+      // Parámetros de Agentes de Tinta (Physarum)
       physarum: {
-        numAgents: 220,
+        numAgents: 180,
         stepSize: 1.1,
         sensorAngle: 28,
         sensorDist: 18,
@@ -47,6 +47,16 @@ class SimulationGUI {
         depositAlpha: 18,
         palette: 'white-swan',
         spawnMode: 'Centro Circular'
+      },
+
+      // Parámetros de Agentes Limpiadores / Borradores de Luz (Prompt 5)
+      cleaners: {
+        enableCleaners: true,
+        numCleaners: 28,          // Pocos agentes (15 - 35)
+        cleanerSpeed: 1.3,        // Velocidad
+        cleanerRadius: 28,        // Tamaño mediano (18 - 40 px)
+        cleanerStrength: 24,      // Opacidad del aerógrafo marfil
+        cleanerSensorDist: 32     // Alcance de detección de tinta
       },
 
       // Física de Fluidos
@@ -73,7 +83,7 @@ class SimulationGUI {
    * Inicializa dat.GUI
    */
   init() {
-    this.gui = new dat.GUI({ width: 330, autoPlace: true });
+    this.gui = new dat.GUI({ width: 340, autoPlace: true });
     this.gui.domElement.id = 'custom-dat-gui';
 
     // --- CARPETA 1: ACTOS DRAMÁTICOS (1 al 4) ---
@@ -113,7 +123,63 @@ class SimulationGUI {
       .listen();
     audioFolder.open();
 
-    // --- CARPETA 3: SIMULACIÓN & VISTA ---
+    // --- CARPETA 3: AGENTES LIMPIADORES / BORRADORES (Luz) ---
+    const cleanFolder = this.gui.addFolder('Agentes Limpiadores (Borradores)');
+    this.controllers.enableCleaners = cleanFolder.add(this.params.cleaners, 'enableCleaners').name('Activar Limpiadores');
+    this.controllers.numCleaners = cleanFolder.add(this.params.cleaners, 'numCleaners', 0, 60, 1)
+      .name('Nº Limpiadores')
+      .onChange((count) => {
+        if (typeof setCleanerCount === 'function') {
+          setCleanerCount(count);
+        }
+      });
+    this.controllers.cleanerRadius = cleanFolder.add(this.params.cleaners, 'cleanerRadius', 10, 60, 1).name('Radio Aerógrafo (px)');
+    this.controllers.cleanerStrength = cleanFolder.add(this.params.cleaners, 'cleanerStrength', 5, 80, 1).name('Fuerza Borrado');
+    this.controllers.cleanerSpeed = cleanFolder.add(this.params.cleaners, 'cleanerSpeed', 0.4, 4.0, 0.1).name('Velocidad Limpiadores');
+    cleanFolder.open();
+
+    // --- CARPETA 4: AGENTES DE TINTA (Physarum) ---
+    const physFolder = this.gui.addFolder('Agentes de Tinta (Oscuridad)');
+    this.controllers.numAgents = physFolder.add(this.params.physarum, 'numAgents', 50, 600, 10)
+      .name('Nº Agentes Tinta')
+      .onChange((newCount) => {
+        if (typeof setAgentCount === 'function') {
+          setAgentCount(newCount);
+        }
+      });
+
+    this.controllers.stepSize = physFolder.add(this.params.physarum, 'stepSize', 0.5, 5.0, 0.1).name('Velocidad Base');
+    this.controllers.sensorAngle = physFolder.add(this.params.physarum, 'sensorAngle', 10, 80, 1).name('Ángulo Sensores (°)');
+    this.controllers.sensorDist = physFolder.add(this.params.physarum, 'sensorDist', 8, 50, 1).name('Distancia Sensor (px)');
+    this.controllers.turnAngle = physFolder.add(this.params.physarum, 'turnAngle', 10, 65, 1).name('Fuerza de Giro (°)');
+    this.controllers.depositRadius = physFolder.add(this.params.physarum, 'depositRadius', 1.0, 8.0, 0.2).name('Grosor Depósito');
+    this.controllers.depositAlpha = physFolder.add(this.params.physarum, 'depositAlpha', 5, 120, 1).name('Opacidad Tinta');
+    this.controllers.spawnMode = physFolder.add(this.params.physarum, 'spawnMode', ['Centro Circular', 'Aleatorio', 'Anillo Perimetral'])
+      .name('Patrón Siembra')
+      .onChange(() => this.onReseedAgents());
+    physFolder.close();
+
+    // --- CARPETA 5: FÍSICA DEL FLUIDO ---
+    const fluidFolder = this.gui.addFolder('Física del Fluido (Tinta)');
+    this.controllers.enableDiffusion = fluidFolder.add(this.params.fluid, 'enableDiffusion').name('Activar Difusión');
+    this.controllers.diffusionRate = fluidFolder.add(this.params.fluid, 'diffusionRate', 0.0, 2.5, 0.1).name('Tasa Difusión (px)');
+    this.controllers.enableEvaporation = fluidFolder.add(this.params.fluid, 'enableEvaporation').name('Activar Secado');
+    this.controllers.evaporationRate = fluidFolder.add(this.params.fluid, 'evaporationRate', 0.5, 22, 0.5).name('Tasa Secado (Evap)');
+    fluidFolder.close();
+
+    // --- CARPETA 6: CURSOR / ESTÍMULO ---
+    const cursorFolder = this.gui.addFolder('Cursor ("Can\'t Help Myself")');
+    this.controllers.cursorMode = cursorFolder.add(this.params.cursor, 'cursorMode', ['Espátula / Limpiador', 'Vertido de Tinta'])
+      .name('Modo Cursor (C)')
+      .onChange((mode) => {
+        this.showToast(`Modo Cursor: ${mode}`);
+      });
+    this.controllers.cursorRadius = cursorFolder.add(this.params.cursor, 'cursorRadius', 15, 140, 1).name('Radio Cursor');
+    this.controllers.cursorStrength = cursorFolder.add(this.params.cursor, 'cursorStrength', 0.2, 2.5, 0.1).name('Fuerza Cursor');
+    this.controllers.showCursorRing = cursorFolder.add(this.params.cursor, 'showCursorRing').name('Mostrar Guía Visual');
+    cursorFolder.close();
+
+    // --- CARPETA 7: SIMULACIÓN & VISTA ---
     const simFolder = this.gui.addFolder('Simulación & Vista');
     this.controllers.isPaused = simFolder.add(this.params, 'isPaused')
       .name('Pausar (P / Espacio)')
@@ -134,47 +200,6 @@ class SimulationGUI {
         this.toggleHUD(val);
       });
     simFolder.close();
-
-    // --- CARPETA 4: FÍSICA DEL FLUIDO ---
-    const fluidFolder = this.gui.addFolder('Física del Fluido (Tinta)');
-    this.controllers.enableDiffusion = fluidFolder.add(this.params.fluid, 'enableDiffusion').name('Activar Difusión');
-    this.controllers.diffusionRate = fluidFolder.add(this.params.fluid, 'diffusionRate', 0.0, 2.5, 0.1).name('Tasa Difusión (px)');
-    this.controllers.enableEvaporation = fluidFolder.add(this.params.fluid, 'enableEvaporation').name('Activar Secado');
-    this.controllers.evaporationRate = fluidFolder.add(this.params.fluid, 'evaporationRate', 0.5, 22, 0.5).name('Tasa Secado (Evap)');
-    fluidFolder.close();
-
-    // --- CARPETA 5: CURSOR / ESTÍMULO ---
-    const cursorFolder = this.gui.addFolder('Cursor ("Can\'t Help Myself")');
-    this.controllers.cursorMode = cursorFolder.add(this.params.cursor, 'cursorMode', ['Espátula / Limpiador', 'Vertido de Tinta'])
-      .name('Modo Cursor (C)')
-      .onChange((mode) => {
-        this.showToast(`Modo Cursor: ${mode}`);
-      });
-    this.controllers.cursorRadius = cursorFolder.add(this.params.cursor, 'cursorRadius', 15, 140, 1).name('Radio Cursor');
-    this.controllers.cursorStrength = cursorFolder.add(this.params.cursor, 'cursorStrength', 0.2, 2.5, 0.1).name('Fuerza Cursor');
-    this.controllers.showCursorRing = cursorFolder.add(this.params.cursor, 'showCursorRing').name('Mostrar Guía Visual');
-    cursorFolder.close();
-
-    // --- CARPETA 6: AGENTES PHYSARUM ---
-    const physFolder = this.gui.addFolder('Agentes Physarum 2D');
-    this.controllers.numAgents = physFolder.add(this.params.physarum, 'numAgents', 50, 600, 10)
-      .name('Nº Agentes')
-      .onChange((newCount) => {
-        if (typeof setAgentCount === 'function') {
-          setAgentCount(newCount);
-        }
-      });
-
-    this.controllers.stepSize = physFolder.add(this.params.physarum, 'stepSize', 0.5, 5.0, 0.1).name('Velocidad Base');
-    this.controllers.sensorAngle = physFolder.add(this.params.physarum, 'sensorAngle', 10, 80, 1).name('Ángulo Sensores (°)');
-    this.controllers.sensorDist = physFolder.add(this.params.physarum, 'sensorDist', 8, 50, 1).name('Distancia Sensor (px)');
-    this.controllers.turnAngle = physFolder.add(this.params.physarum, 'turnAngle', 10, 65, 1).name('Fuerza de Giro (°)');
-    this.controllers.depositRadius = physFolder.add(this.params.physarum, 'depositRadius', 1.0, 8.0, 0.2).name('Grosor Depósito');
-    this.controllers.depositAlpha = physFolder.add(this.params.physarum, 'depositAlpha', 5, 120, 1).name('Opacidad Tinta');
-    this.controllers.spawnMode = physFolder.add(this.params.physarum, 'spawnMode', ['Centro Circular', 'Aleatorio', 'Anillo Perimetral'])
-      .name('Patrón Siembra')
-      .onChange(() => this.onReseedAgents());
-    physFolder.close();
 
     this.setupKeyboardShortcuts();
   }

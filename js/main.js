@@ -2,15 +2,16 @@
  * ============================================================================
  * SIMULACIÓN POÉTICA 2D - UNIDAD 6 (UPB)
  * Creative Coding & Sistemas Emergentes
- * Physarum Polycephalum, Física de Fluidos y Reactividad Espectral "Black Swan"
+ * Physarum Polycephalum (Tinta), Agentes Limpiadores (Luz) y Reactividad "Black Swan"
  * ============================================================================
  */
 
 // Buffers y Lienzos
 let inkBuffer; // Buffer secundario 2D para las trazas de Physarum
 
-// Arreglo de Agentes Autónomos
-let agents = [];
+// Poblaciones de Agentes Autónomos
+let agents = [];         // Agentes creadores de Tinta (Oscuridad)
+let cleanerAgents = [];  // Agentes Limpiadores / Borradores (Luz Marfil)
 
 // Motores de Fluido y Audio Reactivo
 let fluidSystem = null;
@@ -45,7 +46,11 @@ const SCENES = {
     cursorStrength: 1.3,
     palette: 'white-swan',
     guiName: '1. Cisne Blanco',
-    targetAgents: 180
+    targetAgents: 160,       // Tinta contenida
+    targetCleaners: 28,      // Limpiadores activos y dominantes
+    cleanerRadius: 30,
+    cleanerStrength: 26,
+    cleanerSpeed: 1.4
   },
   2: {
     id: 2,
@@ -65,7 +70,11 @@ const SCENES = {
     cursorStrength: 1.0,
     palette: 'tension',
     guiName: '2. Tensión',
-    targetAgents: 230
+    targetAgents: 230,       // Tinta en expansión
+    targetCleaners: 16,      // Limpiadores comienzan a perder terreno
+    cleanerRadius: 24,
+    cleanerStrength: 18,
+    cleanerSpeed: 1.2
   },
   3: {
     id: 3,
@@ -85,7 +94,11 @@ const SCENES = {
     cursorStrength: 1.8,
     palette: 'black-swan',
     guiName: '3. Cisne Negro',
-    targetAgents: 320
+    targetAgents: 330,       // Marea negra dominante
+    targetCleaners: 6,       // Limpiadores casi extintos / superados
+    cleanerRadius: 18,
+    cleanerStrength: 10,
+    cleanerSpeed: 1.0
   },
   4: {
     id: 4,
@@ -105,7 +118,11 @@ const SCENES = {
     cursorStrength: 1.0,
     palette: 'gold',         // Tono dorado noble sobre blanco
     guiName: '4. Metamorfosis',
-    targetAgents: 210
+    targetAgents: 200,       // Caligrafía áurea
+    targetCleaners: 22,      // Limpiadores en balance armónico
+    cleanerRadius: 26,
+    cleanerStrength: 20,
+    cleanerSpeed: 1.3
   }
 };
 
@@ -128,8 +145,9 @@ function setup() {
   audioEngine = new AudioReactiveEngine();
   simGUI = new SimulationGUI();
 
-  // 4. Inicializar Población de Agentes
+  // 4. Inicializar Poblaciones de Agentes (Tinta y Limpiadores)
   initAgents();
+  initCleanerAgents();
 
   // 5. Aplicar la Escena Inicial (Acto I: Cisne Blanco)
   switchScene(1, false);
@@ -152,6 +170,7 @@ function draw() {
   if (!isSimulationPaused) {
     const currentCursorParams = simGUI ? simGUI.params.cursor : {};
     const currentPhysParams = simGUI ? simGUI.params.physarum : {};
+    const currentCleanerParams = simGUI ? simGUI.params.cleaners : {};
     const currentFluidParams = simGUI ? simGUI.params.fluid : {};
     const activePalette = currentPhysParams.palette || 'black-swan';
 
@@ -183,12 +202,19 @@ function draw() {
     const bufW = inkBuffer.width;
     const bufH = inkBuffer.height;
 
-    // 3. Actualizar Agentes con modulación armónica del audio
+    // 3. Actualizar Agentes Creadores de Tinta
     for (let i = 0; i < agents.length; i++) {
       agents[i].update(pixelArray, bufW, bufH, inkBuffer, currentPhysParams, audioData);
     }
 
-    // 4. Física de Fluidos: Difusión capilar y Secado progresivo
+    // 4. Actualizar Agentes Limpiadores / Borradores de Luz (Autonomía Ecológica)
+    if (currentCleanerParams.enableCleaners) {
+      for (let j = 0; j < cleanerAgents.length; j++) {
+        cleanerAgents[j].update(pixelArray, bufW, bufH, inkBuffer, currentCleanerParams, audioData);
+      }
+    }
+
+    // 5. Física de Fluidos: Difusión capilar y Secado progresivo
     fluidSystem.processFluidDynamics(inkBuffer, currentFluidParams, audioData);
   }
 
@@ -271,9 +297,11 @@ function switchScene(sceneId, notify = true) {
   currentSceneId = sceneId;
 
   if (simGUI) {
+    // Parámetros de fluido
     simGUI.params.fluid.evaporationRate = scene.evaporationRate;
     simGUI.params.fluid.diffusionRate = scene.diffusionRate;
 
+    // Parámetros de agentes de tinta
     simGUI.params.physarum.stepSize = scene.stepSize;
     simGUI.params.physarum.sensorAngle = scene.sensorAngle;
     simGUI.params.physarum.sensorDist = scene.sensorDist;
@@ -283,6 +311,15 @@ function switchScene(sceneId, notify = true) {
     simGUI.params.physarum.palette = scene.palette;
     simGUI.params.physarum.numAgents = scene.targetAgents;
 
+    // Parámetros de agentes limpiadores
+    if (scene.targetCleaners !== undefined) {
+      simGUI.params.cleaners.numCleaners = scene.targetCleaners;
+      simGUI.params.cleaners.cleanerRadius = scene.cleanerRadius || 28;
+      simGUI.params.cleaners.cleanerStrength = scene.cleanerStrength || 22;
+      simGUI.params.cleaners.cleanerSpeed = scene.cleanerSpeed || 1.3;
+    }
+
+    // Parámetros de cursor
     simGUI.params.cursor.cursorMode = scene.cursorMode;
     simGUI.params.cursor.cursorRadius = scene.cursorRadius;
     simGUI.params.cursor.cursorStrength = scene.cursorStrength;
@@ -295,8 +332,11 @@ function switchScene(sceneId, notify = true) {
     }
   }
 
+  // Sincronizar recuentos de poblaciones
   setAgentCount(scene.targetAgents);
+  setCleanerCount(scene.targetCleaners || 20);
 
+  // Actualizar indicador visual DOM
   const romanElem = document.getElementById('scene-roman');
   const titleElem = document.getElementById('scene-title');
   const descElem = document.getElementById('scene-desc');
@@ -311,10 +351,10 @@ function switchScene(sceneId, notify = true) {
 }
 
 /**
- * Inicializa la población de agentes
+ * Inicializa la población de agentes de tinta
  */
 function initAgents() {
-  const targetCount = simGUI ? simGUI.params.physarum.numAgents : 180;
+  const targetCount = simGUI ? simGUI.params.physarum.numAgents : 160;
   const spawnMode = simGUI ? simGUI.params.physarum.spawnMode : 'Centro Circular';
   const config = simGUI ? simGUI.params.physarum : {};
 
@@ -347,6 +387,29 @@ function initAgents() {
   }
 }
 
+/**
+ * Inicializa la población de agentes limpiadores
+ */
+function initCleanerAgents() {
+  const targetCount = simGUI ? simGUI.params.cleaners.numCleaners : 28;
+  const config = simGUI ? simGUI.params.cleaners : {};
+
+  cleanerAgents = [];
+  const cx = width / 2;
+  const cy = height / 2;
+
+  for (let i = 0; i < targetCount; i++) {
+    // Siembra dispersa en corona para patrullaje óptimo
+    const r = random(min(width, height) * 0.15, min(width, height) * 0.45);
+    const theta = random(TWO_PI);
+    const x = cx + Math.cos(theta) * r;
+    const y = cy + Math.sin(theta) * r;
+    const angle = theta + Math.PI / 2 + random(-0.5, 0.5); // Órbita tangencial
+
+    cleanerAgents.push(new CleanerAgent(x, y, angle, config));
+  }
+}
+
 function setAgentCount(newCount) {
   const currentCount = agents.length;
   const config = simGUI ? simGUI.params.physarum : {};
@@ -365,8 +428,23 @@ function setAgentCount(newCount) {
   }
 }
 
+function setCleanerCount(newCount) {
+  const currentCount = cleanerAgents.length;
+  const config = simGUI ? simGUI.params.cleaners : {};
+
+  if (newCount > currentCount) {
+    const toAdd = newCount - currentCount;
+    for (let i = 0; i < toAdd; i++) {
+      cleanerAgents.push(new CleanerAgent(random(width), random(height), random(TWO_PI), config));
+    }
+  } else if (newCount < currentCount) {
+    cleanerAgents.length = newCount;
+  }
+}
+
 function reseedAgentsPool() {
   initAgents();
+  initCleanerAgents();
 }
 
 function resetInkBuffer() {
@@ -400,7 +478,6 @@ function windowResized() {
  * ============================================================================
  */
 function keyPressed() {
-  // Desbloquear audio si aún no se ha iniciado
   if (audioEngine && !audioEngine.isPlaying && !audioEngine.hasUserInteracted) {
     startAudioPerformance();
   }
@@ -458,7 +535,7 @@ function updateHUDMetrics() {
     if (fpsElement) {
       const currentFPS = Math.round(frameRate());
       const scene = SCENES[currentSceneId] || SCENES[1];
-      fpsElement.innerText = `FPS: ${currentFPS} | ${scene.roman} | Agentes: ${agents.length}`;
+      fpsElement.innerText = `FPS: ${currentFPS} | ${scene.roman} | Tinta: ${agents.length} | Limpieza: ${cleanerAgents.length}`;
     }
     lastFpsUpdate = millis();
   }
