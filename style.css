@@ -4,18 +4,18 @@
    ========================================================================== */
 
 :root {
-  --bg-ivory: #f4f1ea;
-  --text-dark: #1f2022;
-  --text-muted: #5e6268;
-  --accent-gold: #c5a059;
-  --glass-bg: rgba(255, 255, 255, 0.78);
-  --glass-border: rgba(31, 32, 34, 0.08);
-  --gui-bg: rgba(20, 22, 26, 0.88);
-  --gui-highlight: #c5a059;
+  --bg-dark: #0a0a0a;
+  --bg-light: #f5f5f5;
+  --text-dark: #121212;
+  --text-light: #f5f5f5;
+  --text-muted: #888888;
+  --accent-silver: #d0d0d0;
+  --glass-bg: rgba(18, 18, 18, 0.75);
+  --glass-border: rgba(255, 255, 255, 0.12);
   --font-serif: 'Cinzel', serif;
   --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-  --shadow-sm: 0 4px 20px rgba(0, 0, 0, 0.06);
-  --shadow-md: 0 8px 32px rgba(0, 0, 0, 0.12);
+  --shadow-sm: 0 4px 20px rgba(0, 0, 0, 0.25);
+  --shadow-md: 0 8px 32px rgba(0, 0, 0, 0.45);
   --radius-md: 12px;
   --radius-sm: 6px;
   --transition-smooth: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
@@ -31,15 +31,17 @@
 }
 
 html, body {
-  width: 100%;
-  height: 100%;
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
   overflow: hidden;
-  background-color: var(--bg-ivory);
+  background-color: var(--bg-dark);
   font-family: var(--font-sans);
-  color: var(--text-dark);
+  color: var(--text-light);
 }
 
-/* Lienzo p5.js en posición fija */
+/* Lienzo p5.js en posición fija cubriendo el 100% de la pantalla */
 canvas {
   display: block;
   position: fixed;
@@ -49,6 +51,7 @@ canvas {
   height: 100vh !important;
   z-index: 1;
   outline: none;
+  border: none;
 }
 
 /* ==========================================================================
@@ -88,7 +91,7 @@ canvas {
   font-size: 1.15rem;
   font-weight: 700;
   letter-spacing: 0.05em;
-  color: var(--text-dark);
+  color: #ffffff;
   margin-bottom: 2px;
 }
 
@@ -105,8 +108,8 @@ canvas {
   gap: 6px;
   margin: 12px 0 10px 0;
   padding: 10px 0;
-  border-top: 1px solid rgba(0, 0, 0, 0.06);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .hud-badge {
@@ -114,19 +117,19 @@ canvas {
   align-items: center;
   gap: 8px;
   font-size: 0.78rem;
-  color: var(--text-dark);
+  color: #e0e0e0;
 }
 
 .hud-badge kbd {
-  background: #ffffff;
-  border: 1px solid rgba(0, 0, 0, 0.15);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  background: #252525;
+  border: 1px solid rgba(255, 255, 255, 0.20);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
   border-radius: 4px;
   padding: 2px 6px;
   font-size: 0.72rem;
   font-family: monospace;
   font-weight: 600;
-  color: #222;
+  color: #f0f0f0;
 }
 
 /* Medidor Espectral de Audio */
@@ -146,7 +149,7 @@ canvas {
 .audio-meter-track {
   width: 100%;
   height: 5px;
-  background: rgba(0, 0, 0, 0.08);
+  background: rgba(255, 255, 255, 0.12);
   border-radius: 3px;
   overflow: hidden;
 }
@@ -154,7 +157,7 @@ canvas {
 .audio-meter-fill {
   width: 0%;
   height: 100%;
-  background: linear-gradient(90deg, #c5a059, #e53e3e);
+  background: linear-gradient(90deg, #777777, #ffffff);
   border-radius: 3px;
   transition: width 0.08s ease-out;
 }
@@ -180,12 +183,12 @@ canvas {
   bottom: 28px;
   right: 28px;
   z-index: 100;
-  background: rgba(22, 24, 28, 0.92);
-  color: #f4f1ea;
+  background: rgba(20, 20, 20, 0.94);
+  color: #f5f5f5;
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
-  border: 1px solid rgba(197, 160, 89, 0.4);
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
   border-radius: var(--radius-md);
   padding: 12px 18px;
   display: flex;
@@ -193,12 +196,12 @@ canvas {
   gap: 12px;
   cursor: pointer;
   transition: var(--transition-smooth);
-  animation: pulsePrompt 2s infinite ease-in-out;
+  animation: pulsePrompt 2.2s infinite ease-in-out;
 }
 
 .audio-start-prompt:hover {
   transform: translateY(-2px) scale(1.02);
-  border-color: var(--accent-gold);
+  border-color: #ffffff;
 }
 
 .audio-start-prompt.prompt-hidden {
@@ -218,18 +221,18 @@ canvas {
 }
 
 .prompt-text strong {
-  color: #fff;
+  color: #ffffff;
   font-weight: 600;
 }
 
 .prompt-text span {
-  color: #cbd5e0;
+  color: #b0b0b0;
   font-size: 0.72rem;
 }
 
 @keyframes pulsePrompt {
-  0%, 100% { box-shadow: 0 4px 20px rgba(197, 160, 89, 0.15); }
-  50% { box-shadow: 0 4px 30px rgba(197, 160, 89, 0.45); }
+  0%, 100% { box-shadow: 0 4px 20px rgba(255, 255, 255, 0.08); }
+  50% { box-shadow: 0 4px 30px rgba(255, 255, 255, 0.22); }
 }
 
 /* ==========================================================================
@@ -265,7 +268,7 @@ canvas {
   text-transform: uppercase;
   letter-spacing: 0.12em;
   font-weight: 700;
-  color: var(--accent-gold);
+  color: #a0a0a0;
   margin-bottom: 4px;
 }
 
@@ -279,10 +282,10 @@ canvas {
   font-family: var(--font-serif);
   font-size: 1.35rem;
   font-weight: 900;
-  color: var(--text-dark);
+  color: #ffffff;
   letter-spacing: 0.05em;
   padding-right: 12px;
-  border-right: 2px solid var(--accent-gold);
+  border-right: 2px solid #666666;
   line-height: 1;
 }
 
@@ -291,7 +294,7 @@ canvas {
   font-size: 0.98rem;
   font-weight: 700;
   letter-spacing: 0.04em;
-  color: var(--text-dark);
+  color: #ffffff;
   line-height: 1.15;
 }
 
@@ -303,26 +306,26 @@ canvas {
 
 /* Efectos visuales por Acto */
 .scene-indicator-container.act-1 {
-  border-left: 4px solid #718096;
+  border-left: 4px solid #888888;
 }
 .scene-indicator-container.act-2 {
-  border-left: 4px solid #805ad5;
+  border-left: 4px solid #b0b0b0;
 }
 .scene-indicator-container.act-3 {
-  border-left: 4px solid #e53e3e;
-  background: rgba(24, 18, 22, 0.84);
-  color: #f4f1ea;
+  border-left: 4px solid #ffffff;
+  background: rgba(20, 20, 20, 0.88);
+  color: #f5f5f5;
 }
 .scene-indicator-container.act-3 .scene-name,
 .scene-indicator-container.act-3 .scene-roman {
-  color: #fff;
+  color: #ffffff;
 }
 .scene-indicator-container.act-3 .scene-sub {
-  color: #cbd5e0;
+  color: #b0b0b0;
 }
 .scene-indicator-container.act-4 {
-  border-left: 4px solid var(--accent-gold);
-  background: rgba(250, 245, 235, 0.92);
+  border-left: 4px solid #e0e0e0;
+  background: rgba(240, 240, 240, 0.92);
 }
 
 /* ==========================================================================
@@ -333,14 +336,15 @@ canvas {
   bottom: 32px;
   left: 50%;
   transform: translateX(-50%) translateY(20px);
-  background: rgba(20, 22, 26, 0.92);
-  color: #f4f1ea;
+  background: rgba(20, 20, 20, 0.94);
+  color: #f5f5f5;
   backdrop-filter: blur(10px);
   padding: 10px 22px;
   border-radius: 30px;
   font-size: 0.85rem;
   font-weight: 500;
   letter-spacing: 0.03em;
+  border: 1px solid rgba(255, 255, 255, 0.15);
   box-shadow: var(--shadow-md);
   opacity: 0;
   pointer-events: none;
@@ -354,7 +358,7 @@ canvas {
 }
 
 /* ==========================================================================
-   dat.GUI Estilización Premium
+   dat.GUI Estilización Premium Monocromática
    ========================================================================== */
 .dg.ac {
   z-index: 1000 !important;
@@ -367,10 +371,10 @@ canvas {
   border-radius: var(--radius-md) !important;
   overflow: hidden !important;
   box-shadow: var(--shadow-md) !important;
-  background: var(--gui-bg) !important;
+  background: rgba(18, 18, 18, 0.90) !important;
   backdrop-filter: blur(14px) !important;
   -webkit-backdrop-filter: blur(14px) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
   transition: opacity 0.25s ease, transform 0.25s ease !important;
 }
 
@@ -387,34 +391,34 @@ canvas {
 }
 
 .dg li.title {
-  background: rgba(255, 255, 255, 0.05) !important;
+  background: rgba(255, 255, 255, 0.08) !important;
   font-weight: 600 !important;
   letter-spacing: 0.04em !important;
   font-size: 0.8rem !important;
-  color: #f4f1ea !important;
-  border-left: 3px solid var(--gui-highlight) !important;
+  color: #f5f5f5 !important;
+  border-left: 3px solid #ffffff !important;
   padding-left: 10px !important;
 }
 
 .dg .c .slider {
-  background: rgba(255, 255, 255, 0.1) !important;
+  background: rgba(255, 255, 255, 0.12) !important;
   border-radius: 4px !important;
 }
 
 .dg .c .slider-fg {
-  background: var(--accent-gold) !important;
+  background: #d0d0d0 !important;
   border-radius: 4px !important;
 }
 
 .dg .property-name {
   font-size: 0.78rem !important;
-  color: #d1d5db !important;
+  color: #d0d0d0 !important;
 }
 
 .dg .button {
-  background: rgba(197, 160, 89, 0.15) !important;
-  color: #f4f1ea !important;
-  border: 1px solid rgba(197, 160, 89, 0.3) !important;
+  background: rgba(255, 255, 255, 0.10) !important;
+  color: #f5f5f5 !important;
+  border: 1px solid rgba(255, 255, 255, 0.20) !important;
   border-radius: 4px !important;
   text-align: center !important;
   font-weight: 500 !important;
@@ -422,8 +426,8 @@ canvas {
 }
 
 .dg .button:hover {
-  background: rgba(197, 160, 89, 0.35) !important;
-  border-color: var(--accent-gold) !important;
+  background: rgba(255, 255, 255, 0.22) !important;
+  border-color: #ffffff !important;
 }
 
 /* Responsividad */
@@ -451,3 +455,34 @@ canvas {
     margin-top: 12px !important;
   }
 }
+
+/* ==========================================================================
+   MODO PANTALLA COMPLETA TOTAL (100% Lienzo Puro, 0 Distracciones)
+   ========================================================================== */
+body.is-fullscreen .hud-container,
+body.is-fullscreen .scene-indicator-container,
+body.is-fullscreen .audio-start-prompt,
+body.is-fullscreen .toast-message,
+body.is-fullscreen .dg.ac,
+body.is-fullscreen .dg.main,
+body.is-fullscreen #custom-dat-gui,
+:fullscreen .hud-container,
+:fullscreen .scene-indicator-container,
+:fullscreen .audio-start-prompt,
+:fullscreen .toast-message,
+:fullscreen .dg.ac,
+:fullscreen .dg.main,
+:fullscreen #custom-dat-gui,
+:-webkit-full-screen .hud-container,
+:-webkit-full-screen .scene-indicator-container,
+:-webkit-full-screen .audio-start-prompt,
+:-webkit-full-screen .toast-message,
+:-webkit-full-screen .dg.ac,
+:-webkit-full-screen .dg.main,
+:-webkit-full-screen #custom-dat-gui {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+

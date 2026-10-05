@@ -1,7 +1,7 @@
 /**
  * ============================================================================
  * SIMULACIÓN POÉTICA 2D - UNIDAD 6 (UPB)
- * Módulo de Interfaz Gráfica (dat.GUI) y Gestión de Escenas Dramáticas
+ * Módulo de Interfaz Gráfica (dat.GUI) y Monitor de Coreografía Musical
  * ============================================================================
  */
 
@@ -11,14 +11,18 @@ class SimulationGUI {
     this.isVisible = true;
     this.controllers = {};
 
-    // Objeto central de parámetros
     this.params = {
-      // Control de Escenas Dramáticas (Teclas 1, 2, 3, 4)
-      currentSceneName: '1. Cisne Blanco',
-      scene1: () => switchScene(1),
-      scene2: () => switchScene(2),
-      scene3: () => switchScene(3),
-      scene4: () => switchScene(4),
+      // Monitor de Coreografía Rítmica
+      currentBeatCategory: 'SÚPER BAJO',
+      currentChoreography: 'MANDALAS BOTÁNICAS',
+      songTime: '0:00',
+      
+      // Saltos Rápidos de Coreografía
+      jumpIntro: () => this.seekSong(0),
+      jumpFirstTension: () => this.seekSong(61.8),
+      jumpBlackHole: () => this.seekSong(123.2),
+      jumpSupernova: () => this.seekSong(162.4),
+      jumpOutro: () => this.seekSong(183.0),
 
       // Control de Simulación
       isPaused: false,
@@ -26,7 +30,7 @@ class SimulationGUI {
       clearCanvas: () => this.onClearCanvas(),
       reseedAgents: () => this.onReseedAgents(),
 
-      // Audio Reactivo (Black Swan)
+      // Audio (Black Swan)
       audioPlay: () => this.onAudioPlay(),
       audioPause: () => this.onAudioPause(),
       audioRestart: () => this.onAudioRestart(),
@@ -36,42 +40,40 @@ class SimulationGUI {
       // Visualización & HUD
       showHUD: true,
 
-      // Parámetros de Agentes de Tinta (Physarum)
+      // Población de Agentes de Tinta / Sangre
       physarum: {
-        numAgents: 180,
-        stepSize: 1.1,
-        sensorAngle: 28,
-        sensorDist: 18,
-        turnAngle: 24,
-        depositRadius: 1.8,
-        depositAlpha: 18,
-        palette: 'white-swan',
-        spawnMode: 'Centro Circular'
+        numAgents: 650,          // 650 partículas de tinta / sangre
+        stepSize: 4.5,           // Velocidad equilibrada de time-lapse
+        sensorAngle: 34,
+        sensorDist: 16,
+        turnAngle: 36,
+        depositRadius: 1.4,      // Filamentos capilares nítidos
+        depositAlpha: 65
       },
 
-      // Parámetros de Agentes Limpiadores / Borradores de Luz (Prompt 5)
+      // Población de Agentes Limpiadores (Luz Blanca / Borradores)
       cleaners: {
         enableCleaners: true,
-        numCleaners: 28,          // Pocos agentes (15 - 35)
-        cleanerSpeed: 1.3,        // Velocidad
-        cleanerRadius: 28,        // Tamaño mediano (18 - 40 px)
-        cleanerStrength: 24,      // Opacidad del aerógrafo marfil
-        cleanerSensorDist: 32     // Alcance de detección de tinta
+        numCleaners: 280,        // 280 partículas de luz
+        cleanerSpeed: 4.8,       // Velocidad ágil
+        cleanerRadius: 7.5,      // Aerógrafo suave difuminado
+        cleanerStrength: 55,
+        cleanerSensorDist: 18
       },
 
       // Física de Fluidos
       fluid: {
         enableDiffusion: true,
-        diffusionRate: 0.6,
+        diffusionRate: 0.5,
         enableEvaporation: true,
-        evaporationRate: 14
+        evaporationRate: 4.0
       },
 
-      // Herramienta / Cursor
+      // Cursor
       cursor: {
         cursorMode: 'Espátula / Limpiador',
         cursorRadius: 65,
-        cursorStrength: 1.2,
+        cursorStrength: 1.0,
         showCursorRing: true
       }
     };
@@ -79,32 +81,30 @@ class SimulationGUI {
     this.init();
   }
 
-  /**
-   * Inicializa dat.GUI
-   */
   init() {
     this.gui = new dat.GUI({ width: 340, autoPlace: true });
     this.gui.domElement.id = 'custom-dat-gui';
 
-    // --- CARPETA 1: ACTOS DRAMÁTICOS (1 al 4) ---
-    const sceneFolder = this.gui.addFolder('Narrativa (Teclas 1-4)');
-    this.controllers.currentSceneName = sceneFolder.add(this.params, 'currentSceneName', [
-      '1. Cisne Blanco',
-      '2. Tensión',
-      '3. Cisne Negro',
-      '4. Metamorfosis'
-    ]).name('Acto Activo').onChange((val) => {
-      const sceneId = parseInt(val.charAt(0), 10);
-      switchScene(sceneId);
-    });
+    // --- CARPETA 1: MONITOR DE COREOGRAFÍA (262 BEATS) ---
+    const choreoFolder = this.gui.addFolder('Coreografía Musical (262 Beats)');
+    this.controllers.currentBeatCategory = choreoFolder.add(this.params, 'currentBeatCategory')
+      .name('Intensidad Beat')
+      .listen();
+    this.controllers.currentChoreography = choreoFolder.add(this.params, 'currentChoreography')
+      .name('Forma Activa')
+      .listen();
+    this.controllers.songTime = choreoFolder.add(this.params, 'songTime')
+      .name('Tiempo Audio')
+      .listen();
 
-    sceneFolder.add(this.params, 'scene1').name('[1] Cisne Blanco');
-    sceneFolder.add(this.params, 'scene2').name('[2] Tensión');
-    sceneFolder.add(this.params, 'scene3').name('[3] Cisne Negro');
-    sceneFolder.add(this.params, 'scene4').name('[4] Metamorfosis');
-    sceneFolder.open();
+    choreoFolder.add(this.params, 'jumpIntro').name('⏭ 0:00 Mandalas de Paz');
+    choreoFolder.add(this.params, 'jumpFirstTension').name('⏭ 1:01 Ondas de Choque');
+    choreoFolder.add(this.params, 'jumpBlackHole').name('⏭ 2:03 AGUJERO NEGRO (Vivo)');
+    choreoFolder.add(this.params, 'jumpSupernova').name('⏭ 2:42 SUPERNOVA (Cíclica)');
+    choreoFolder.add(this.params, 'jumpOutro').name('⏭ 3:03 Descenso Etéreo');
+    choreoFolder.open();
 
-    // --- CARPETA 2: AUDIO REACTIVO (Black Swan) ---
+    // --- CARPETA 2: AUDIO REACTIVO ---
     const audioFolder = this.gui.addFolder('Música (Black Swan)');
     audioFolder.add(this.params, 'audioPlay').name('▶ Reproducir Audio');
     audioFolder.add(this.params, 'audioPause').name('⏸ Pausar Audio');
@@ -123,51 +123,44 @@ class SimulationGUI {
       .listen();
     audioFolder.open();
 
-    // --- CARPETA 3: AGENTES LIMPIADORES / BORRADORES (Luz) ---
-    const cleanFolder = this.gui.addFolder('Agentes Limpiadores (Borradores)');
+    // --- CARPETA 3: AGENTES LIMPIADORES (Luz Blanca) ---
+    const cleanFolder = this.gui.addFolder('Agentes Limpiadores (Luz Blanca)');
     this.controllers.enableCleaners = cleanFolder.add(this.params.cleaners, 'enableCleaners').name('Activar Limpiadores');
-    this.controllers.numCleaners = cleanFolder.add(this.params.cleaners, 'numCleaners', 0, 60, 1)
-      .name('Nº Limpiadores')
+    this.controllers.numCleaners = cleanFolder.add(this.params.cleaners, 'numCleaners', 50, 800, 10)
+      .name('Nº Partículas Luz')
       .onChange((count) => {
         if (typeof setCleanerCount === 'function') {
           setCleanerCount(count);
         }
       });
-    this.controllers.cleanerRadius = cleanFolder.add(this.params.cleaners, 'cleanerRadius', 10, 60, 1).name('Radio Aerógrafo (px)');
-    this.controllers.cleanerStrength = cleanFolder.add(this.params.cleaners, 'cleanerStrength', 5, 80, 1).name('Fuerza Borrado');
-    this.controllers.cleanerSpeed = cleanFolder.add(this.params.cleaners, 'cleanerSpeed', 0.4, 4.0, 0.1).name('Velocidad Limpiadores');
+    this.controllers.cleanerRadius = cleanFolder.add(this.params.cleaners, 'cleanerRadius', 3.0, 25.0, 0.5).name('Radio Aerógrafo (px)');
+    this.controllers.cleanerStrength = cleanFolder.add(this.params.cleaners, 'cleanerStrength', 10, 120, 2).name('Fuerza Borrado');
+    this.controllers.cleanerSpeed = cleanFolder.add(this.params.cleaners, 'cleanerSpeed', 1.0, 15.0, 0.2).name('Velocidad Base');
     cleanFolder.open();
 
-    // --- CARPETA 4: AGENTES DE TINTA (Physarum) ---
+    // --- CARPETA 4: AGENTES DE TINTA (Sangre & Brea) ---
     const physFolder = this.gui.addFolder('Agentes de Tinta (Oscuridad)');
-    this.controllers.numAgents = physFolder.add(this.params.physarum, 'numAgents', 50, 600, 10)
-      .name('Nº Agentes Tinta')
+    this.controllers.numAgents = physFolder.add(this.params.physarum, 'numAgents', 100, 1500, 25)
+      .name('Nº Partículas Tinta')
       .onChange((newCount) => {
         if (typeof setAgentCount === 'function') {
           setAgentCount(newCount);
         }
       });
-
-    this.controllers.stepSize = physFolder.add(this.params.physarum, 'stepSize', 0.5, 5.0, 0.1).name('Velocidad Base');
-    this.controllers.sensorAngle = physFolder.add(this.params.physarum, 'sensorAngle', 10, 80, 1).name('Ángulo Sensores (°)');
-    this.controllers.sensorDist = physFolder.add(this.params.physarum, 'sensorDist', 8, 50, 1).name('Distancia Sensor (px)');
-    this.controllers.turnAngle = physFolder.add(this.params.physarum, 'turnAngle', 10, 65, 1).name('Fuerza de Giro (°)');
-    this.controllers.depositRadius = physFolder.add(this.params.physarum, 'depositRadius', 1.0, 8.0, 0.2).name('Grosor Depósito');
-    this.controllers.depositAlpha = physFolder.add(this.params.physarum, 'depositAlpha', 5, 120, 1).name('Opacidad Tinta');
-    this.controllers.spawnMode = physFolder.add(this.params.physarum, 'spawnMode', ['Centro Circular', 'Aleatorio', 'Anillo Perimetral'])
-      .name('Patrón Siembra')
-      .onChange(() => this.onReseedAgents());
+    this.controllers.stepSize = physFolder.add(this.params.physarum, 'stepSize', 1.0, 15.0, 0.2).name('Velocidad Base');
+    this.controllers.depositRadius = physFolder.add(this.params.physarum, 'depositRadius', 0.6, 3.5, 0.1).name('Grosor Depósito');
+    this.controllers.depositAlpha = physFolder.add(this.params.physarum, 'depositAlpha', 10, 160, 2).name('Opacidad Tinta');
     physFolder.close();
 
     // --- CARPETA 5: FÍSICA DEL FLUIDO ---
-    const fluidFolder = this.gui.addFolder('Física del Fluido (Tinta)');
+    const fluidFolder = this.gui.addFolder('Física del Fluido');
     this.controllers.enableDiffusion = fluidFolder.add(this.params.fluid, 'enableDiffusion').name('Activar Difusión');
-    this.controllers.diffusionRate = fluidFolder.add(this.params.fluid, 'diffusionRate', 0.0, 2.5, 0.1).name('Tasa Difusión (px)');
+    this.controllers.diffusionRate = fluidFolder.add(this.params.fluid, 'diffusionRate', 0.0, 2.0, 0.1).name('Tasa Difusión (px)');
     this.controllers.enableEvaporation = fluidFolder.add(this.params.fluid, 'enableEvaporation').name('Activar Secado');
-    this.controllers.evaporationRate = fluidFolder.add(this.params.fluid, 'evaporationRate', 0.5, 22, 0.5).name('Tasa Secado (Evap)');
+    this.controllers.evaporationRate = fluidFolder.add(this.params.fluid, 'evaporationRate', 0.5, 20, 0.5).name('Tasa Secado (Evap)');
     fluidFolder.close();
 
-    // --- CARPETA 6: CURSOR / ESTÍMULO ---
+    // --- CARPETA 6: CURSOR ---
     const cursorFolder = this.gui.addFolder('Cursor ("Can\'t Help Myself")');
     this.controllers.cursorMode = cursorFolder.add(this.params.cursor, 'cursorMode', ['Espátula / Limpiador', 'Vertido de Tinta'])
       .name('Modo Cursor (C)')
@@ -189,11 +182,9 @@ class SimulationGUI {
           togglePauseSimulation(value);
         }
       });
-
     simFolder.add(this.params, 'toggleFullscreen').name('Pantalla Completa (F)');
     simFolder.add(this.params, 'clearCanvas').name('Limpiar Lienzo');
     simFolder.add(this.params, 'reseedAgents').name('Reubicar Agentes');
-    
     this.controllers.showHUD = simFolder.add(this.params, 'showHUD')
       .name('Mostrar Info HUD')
       .onChange((val) => {
@@ -204,9 +195,16 @@ class SimulationGUI {
     this.setupKeyboardShortcuts();
   }
 
-  /**
-   * Configura atajos globales
-   */
+  seekSong(seconds) {
+    if (typeof audioEngine !== 'undefined' && audioEngine && audioEngine.audioElement) {
+      audioEngine.audioElement.currentTime = seconds;
+      if (!audioEngine.isPlaying) {
+        audioEngine.play();
+      }
+      this.showToast(`Saltando a: ${Math.floor(seconds / 60)}:${Math.floor(seconds % 60).toString().padStart(2, '0')}`);
+    }
+  }
+
   setupKeyboardShortcuts() {
     window.addEventListener('keydown', (e) => {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
@@ -214,23 +212,13 @@ class SimulationGUI {
       if (e.key === 'h' || e.key === 'H') this.toggleVisibility();
       if (e.key === 'c' || e.key === 'C') this.toggleCursorMode();
       if (e.key === 'f' || e.key === 'F') toggleFullscreenMode();
-
-      if (e.key === '1') switchScene(1);
-      if (e.key === '2') switchScene(2);
-      if (e.key === '3') switchScene(3);
-      if (e.key === '4') switchScene(4);
     });
   }
 
-  /**
-   * Refresca todos los controladores visuales de dat.GUI
-   */
-  updateDisplay() {
-    for (const key in this.controllers) {
-      if (this.controllers[key] && typeof this.controllers[key].updateDisplay === 'function') {
-        this.controllers[key].updateDisplay();
-      }
-    }
+  updateChoreographyReadout(info, formattedTime) {
+    this.params.currentBeatCategory = info.category;
+    this.params.currentChoreography = info.mode;
+    this.params.songTime = formattedTime;
   }
 
   toggleCursorMode() {
@@ -239,7 +227,7 @@ class SimulationGUI {
     } else {
       this.params.cursor.cursorMode = 'Espátula / Limpiador';
     }
-    this.updateDisplay();
+    this.gui.updateDisplay();
     this.showToast(`Modo Cursor: ${this.params.cursor.cursorMode}`);
   }
 
@@ -330,5 +318,4 @@ class SimulationGUI {
   }
 }
 
-// Instancia global accesible
 let simGUI = null;

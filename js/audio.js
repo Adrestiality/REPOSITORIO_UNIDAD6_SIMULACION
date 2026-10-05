@@ -30,17 +30,20 @@ class AudioReactiveEngine {
     // Métricas reactivas normalizadas (0.0 a 1.0)
     this.data = {
       isPlaying: false,
-      bass: 0,        // Graves / Percusión / Bombos orquestales
-      mid: 0,         // Medios / Cuerdas / Violines
-      treble: 0,      // Agudos / Detalles brillantes
-      energy: 0,      // Energía RMS global
-      isBeat: false,  // Trigger booleano de golpe rítmico
-      beatPulse: 0    // Decaimiento exponencial del golpe (1.0 -> 0.0)
+      bass: 0,            // Graves / Bombos / Timbales orquestales
+      mid: 0,             // Medios / Cuerdas / Violines
+      treble: 0,          // Agudos / Armónicos
+      energy: 0,          // Energía RMS global
+      isBeat: false,      // Trigger booleano de golpe rítmico
+      beatPulse: 0,       // Decaimiento rápido del golpe (1.0 -> 0.0)
+      transientFlux: 0,   // Ataque dinámico instantáneo
+      heartbeatPhase: 0   // Pulso orgánico continuo (0 a TWO_PI)
     };
 
-    // Historial y umbrales para detección de beats
-    this.beatThreshold = 0.62;
-    this.runningBassAvg = 0.3;
+    // Historial y umbrales para detección de beats ultra sensible
+    this.beatThreshold = 0.42;
+    this.runningBassAvg = 0.25;
+    this.prevEnergy = 0;
     this.lastBeatTime = 0;
 
     // Rutas de audio (soporta tanto carpeta assets como raíz)
@@ -61,7 +64,7 @@ class AudioReactiveEngine {
     this.audioElement = new Audio();
     this.audioElement.crossOrigin = 'anonymous';
     this.audioElement.loop = true;
-    this.audioElement.volume = 0.8;
+    this.audioElement.volume = 0.85;
     this.audioElement.preload = 'auto';
 
     this.audioElement.src = this.audioSources[this.currentSourceIdx];
@@ -116,17 +119,17 @@ class AudioReactiveEngine {
 
       this.audioCtx = new AudioContextClass();
 
-      // Analizador FFT
+      // Analizador FFT con respuesta rápida
       this.analyser = this.audioCtx.createAnalyser();
       this.analyser.fftSize = 512;
-      this.analyser.smoothingTimeConstant = 0.85;
+      this.analyser.smoothingTimeConstant = 0.70; // Mayor reactividad temporal
 
       this.freqData = new Uint8Array(this.analyser.frequencyBinCount);
       this.timeData = new Uint8Array(this.analyser.frequencyBinCount);
 
       // Nodo de Ganancia
       this.gainNode = this.audioCtx.createGain();
-      this.gainNode.gain.value = 0.8;
+      this.gainNode.gain.value = 0.85;
 
       // Conexión del elemento Audio
       this.sourceNode = this.audioCtx.createMediaElementSource(this.audioElement);
@@ -201,17 +204,17 @@ class AudioReactiveEngine {
   }
 
   /**
-   * Extrae los valores espectrales del frame actual y calcula los triggers reactivos
+   * Extrae los valores espectrales del frame actual con alta sensibilidad y transitorios
    * @returns {Object} Datos de análisis de audio normalizados
    */
   update() {
-    // Si no está reproduciendo o no está inicializado el analizador, decaer gradualmente
     if (!this.isPlaying || !this.analyser || !this.freqData) {
-      this.data.bass *= 0.92;
-      this.data.mid *= 0.92;
-      this.data.treble *= 0.92;
-      this.data.energy *= 0.92;
-      this.data.beatPulse *= 0.88;
+      this.data.bass *= 0.88;
+      this.data.mid *= 0.88;
+      this.data.treble *= 0.88;
+      this.data.energy *= 0.88;
+      this.data.beatPulse *= 0.82;
+      this.data.transientFlux *= 0.80;
       this.data.isBeat = false;
       this.data.isPlaying = this.isPlaying;
       return this.data;
@@ -220,54 +223,58 @@ class AudioReactiveEngine {
     // Obtener datos de frecuencia (0 a 255 por bin)
     this.analyser.getByteFrequencyData(this.freqData);
 
-    const totalBins = this.freqData.length; // 256 bins
-
-    // Rangos de frecuencia según la orquestación de Black Swan
-    // 1. Bass: bins 1 a 14 (~20 Hz a 240 Hz) -> Timbales, chelos graves y bombos
+    // 1. Bass: bins 1 a 16 (~20 Hz a 280 Hz) -> Timbales, bombos y contrabajos
     let bassSum = 0;
-    const bassEnd = 14;
+    const bassEnd = 16;
     for (let i = 1; i <= bassEnd; i++) {
       bassSum += this.freqData[i];
     }
-    const currentBass = (bassSum / bassEnd) / 255;
+    const rawBass = (bassSum / bassEnd) / 255;
 
-    // 2. Mid: bins 15 a 70 (~250 Hz a 1200 Hz) -> Cuerdas tensas, violines y piano
+    // 2. Mid: bins 17 a 80 (~290 Hz a 1400 Hz) -> Cuerdas, violas y violines
     let midSum = 0;
-    const midEnd = 70;
-    for (let i = 15; i <= midEnd; i++) {
+    const midEnd = 80;
+    for (let i = 17; i <= midEnd; i++) {
       midSum += this.freqData[i];
     }
-    const currentMid = (midSum / (midEnd - 15)) / 255;
+    const rawMid = (midSum / (midEnd - 17)) / 255;
 
-    // 3. Treble: bins 71 a 190 (~1300 Hz a 6000 Hz) -> Aire, armónicos y detalles finos
+    // 3. Treble: bins 81 a 200 (~1400 Hz a 6500 Hz) -> Aire, platillos y armónicos
     let trebleSum = 0;
-    const trebleEnd = 190;
-    for (let i = 71; i <= trebleEnd; i++) {
+    const trebleEnd = 200;
+    for (let i = 81; i <= trebleEnd; i++) {
       trebleSum += this.freqData[i];
     }
-    const currentTreble = (trebleSum / (trebleEnd - 71)) / 255;
+    const rawTreble = (trebleSum / (trebleEnd - 81)) / 255;
 
-    // 4. Energía global
-    const currentEnergy = (currentBass * 0.45 + currentMid * 0.35 + currentTreble * 0.20);
+    // 4. Energía y flujo espectral instantáneo
+    const rawEnergy = (rawBass * 0.50 + rawMid * 0.35 + rawTreble * 0.15);
+    const flux = Math.max(0, rawEnergy - this.prevEnergy);
+    this.prevEnergy = rawEnergy;
 
-    // Suavizado temporal (Low-pass filter)
-    this.data.bass = this.data.bass * 0.7 + currentBass * 0.3;
-    this.data.mid = this.data.mid * 0.7 + currentMid * 0.3;
-    this.data.treble = this.data.treble * 0.7 + currentTreble * 0.3;
-    this.data.energy = this.data.energy * 0.75 + currentEnergy * 0.25;
+    // Suavizado dinámico ultrarrápido (Fast Attack / Gentle Release)
+    this.data.bass = rawBass > this.data.bass ? (this.data.bass * 0.3 + rawBass * 0.7) : (this.data.bass * 0.82 + rawBass * 0.18);
+    this.data.mid = rawMid > this.data.mid ? (this.data.mid * 0.35 + rawMid * 0.65) : (this.data.mid * 0.82 + rawMid * 0.18);
+    this.data.treble = rawTreble > this.data.treble ? (this.data.treble * 0.4 + rawTreble * 0.6) : (this.data.treble * 0.82 + rawTreble * 0.18);
+    this.data.energy = rawEnergy > this.data.energy ? (this.data.energy * 0.35 + rawEnergy * 0.65) : (this.data.energy * 0.85 + rawEnergy * 0.15);
+    this.data.transientFlux = this.data.transientFlux * 0.7 + flux * 0.3;
 
-    // Detección dinámica de golpes de beat (Surge detection)
+    // Fase de latido orgánico pulsante (como un corazón en cámara rápida)
+    const heartSpeed = 0.08 + this.data.energy * 0.18 + this.data.bass * 0.14;
+    this.data.heartbeatPhase = (this.data.heartbeatPhase + heartSpeed) % (Math.PI * 2);
+
+    // Detección dinámica y ultra sensible de beats (Surge & Transient detector)
     const now = performance.now();
-    this.runningBassAvg = this.runningBassAvg * 0.95 + this.data.bass * 0.05;
+    this.runningBassAvg = this.runningBassAvg * 0.92 + this.data.bass * 0.08;
     const bassRatio = this.runningBassAvg > 0.01 ? (this.data.bass / this.runningBassAvg) : 1;
 
     let isBeat = false;
-    if (this.data.bass > 0.35 && bassRatio > 1.32 && (now - this.lastBeatTime > 190)) {
+    if ((this.data.bass > 0.28 && bassRatio > 1.22 && (now - this.lastBeatTime > 140)) || (flux > 0.18 && (now - this.lastBeatTime > 160))) {
       isBeat = true;
       this.lastBeatTime = now;
       this.data.beatPulse = 1.0;
     } else {
-      this.data.beatPulse *= 0.88; // Decaimiento suave del pulso
+      this.data.beatPulse *= 0.84; // Decaimiento ágil
     }
 
     this.data.isBeat = isBeat;
@@ -276,3 +283,6 @@ class AudioReactiveEngine {
     return this.data;
   }
 }
+
+
+

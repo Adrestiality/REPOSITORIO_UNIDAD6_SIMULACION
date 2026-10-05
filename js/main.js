@@ -2,157 +2,52 @@
  * ============================================================================
  * SIMULACIÓN POÉTICA 2D - UNIDAD 6 (UPB)
  * Creative Coding & Sistemas Emergentes
- * Physarum Polycephalum (Tinta), Agentes Limpiadores (Luz) y Reactividad "Black Swan"
+ * Coreografía Musical de 262 Beats · BTS Black Swan (Orchestral)
+ * Coexistencia continua de Tinta Negra (Materia) y Luz Marfil (Espacio Limpio)
  * ============================================================================
  */
 
 // Buffers y Lienzos
-let inkBuffer; // Buffer secundario 2D para las trazas de Physarum
+let inkBuffer;
 
-// Poblaciones de Agentes Autónomos
-let agents = [];         // Agentes creadores de Tinta (Oscuridad)
-let cleanerAgents = [];  // Agentes Limpiadores / Borradores (Luz Marfil)
+// Poblaciones Coexistentes de Alta Densidad (Equilibrio de Alto Rendimiento)
+let agents = [];         // 650 Partículas de Tinta Negra / Sangre
+let cleanerAgents = [];  // 280 Partículas de Luz Blanca / Borradores Marfil
 
-// Motores de Fluido y Audio Reactivo
+// Motores de Fluido, Audio y Coreografía de 262 Beats
 let fluidSystem = null;
 let audioEngine = null;
+let choreographyEngine = null;
 
-// Estado de la Simulación y Escena Activa
-let currentSceneId = 1;
+// Estado de la Simulación
 let isSimulationPaused = false;
 
-// Color base del lienzo (Blanco marfil / papel poético)
-const COLOR_MARFIL = '#f4f1ea';
+// Color base inicial en escala de grises alabastro pura
+const COLOR_BASE_ALABASTRO = '#f5f5f5';
 
 /**
- * DEFINICIÓN DE LAS 4 ESCENAS DRAMÁTICAS (BLACK SWAN SCORE)
- */
-const SCENES = {
-  1: {
-    id: 1,
-    roman: 'ACTO I',
-    name: 'CISNE BLANCO',
-    subtitle: 'Orden & Lienzo Limpio',
-    evaporationRate: 14.0,   // Secado muy rápido (pantalla limpia)
-    diffusionRate: 0.6,      // Difusión sutil
-    stepSize: 1.1,           // Agentes lentos y ceremoniales
-    sensorAngle: 28,
-    sensorDist: 18,
-    turnAngle: 24,
-    depositRadius: 1.8,      // Trazos finos
-    depositAlpha: 18,        // Muy tenue
-    cursorMode: 'Espátula / Limpiador',
-    cursorRadius: 65,
-    cursorStrength: 1.3,
-    palette: 'white-swan',
-    guiName: '1. Cisne Blanco',
-    targetAgents: 160,       // Tinta contenida
-    targetCleaners: 28,      // Limpiadores activos y dominantes
-    cleanerRadius: 30,
-    cleanerStrength: 26,
-    cleanerSpeed: 1.4
-  },
-  2: {
-    id: 2,
-    roman: 'ACTO II',
-    name: 'TENSIÓN',
-    subtitle: 'La Grieta & Tinta Fluida',
-    evaporationRate: 5.5,    // Evaporación media, acumulación en el centro
-    diffusionRate: 0.8,
-    stepSize: 2.2,           // Agentes aceleran
-    sensorAngle: 35,
-    sensorDist: 24,
-    turnAngle: 32,
-    depositRadius: 3.2,
-    depositAlpha: 45,        // Ramificaciones densas
-    cursorMode: 'Espátula / Limpiador',
-    cursorRadius: 55,
-    cursorStrength: 1.0,
-    palette: 'tension',
-    guiName: '2. Tensión',
-    targetAgents: 230,       // Tinta en expansión
-    targetCleaners: 16,      // Limpiadores comienzan a perder terreno
-    cleanerRadius: 24,
-    cleanerStrength: 18,
-    cleanerSpeed: 1.2
-  },
-  3: {
-    id: 3,
-    roman: 'ACTO III',
-    name: 'CISNE NEGRO',
-    subtitle: 'Clímax & "Can\'t Help Myself"',
-    evaporationRate: 1.2,    // Mínima evaporación (desborde de tinta)
-    diffusionRate: 1.2,
-    stepSize: 2.8,           // Movimiento agresivo y frenético
-    sensorAngle: 42,
-    sensorDist: 30,
-    turnAngle: 40,
-    depositRadius: 5.2,      // Manchas anchas y pesadas
-    depositAlpha: 85,        // Emisión máxima
-    cursorMode: 'Vertido de Tinta', // Pulso que agita la tinta
-    cursorRadius: 85,
-    cursorStrength: 1.8,
-    palette: 'black-swan',
-    guiName: '3. Cisne Negro',
-    targetAgents: 330,       // Marea negra dominante
-    targetCleaners: 6,       // Limpiadores casi extintos / superados
-    cleanerRadius: 18,
-    cleanerStrength: 10,
-    cleanerSpeed: 1.0
-  },
-  4: {
-    id: 4,
-    roman: 'ACTO IV',
-    name: 'METAMORFOSIS',
-    subtitle: 'Resolución Áurea & Calma',
-    evaporationRate: 7.5,    // Evaporación vuelve a subir para limpiar suavemente
-    diffusionRate: 0.9,
-    stepSize: 1.4,           // Calma serena
-    sensorAngle: 30,
-    sensorDist: 20,
-    turnAngle: 26,
-    depositRadius: 2.2,
-    depositAlpha: 38,
-    cursorMode: 'Vertido de Tinta',
-    cursorRadius: 60,
-    cursorStrength: 1.0,
-    palette: 'gold',         // Tono dorado noble sobre blanco
-    guiName: '4. Metamorfosis',
-    targetAgents: 200,       // Caligrafía áurea
-    targetCleaners: 22,      // Limpiadores en balance armónico
-    cleanerRadius: 26,
-    cleanerStrength: 20,
-    cleanerSpeed: 1.3
-  }
-};
-
-/**
- * Setup principal de p5.js (Entorno 2D estricto)
+ * Setup principal de p5.js
  */
 function setup() {
-  // 1. Crear Lienzo Principal 2D a pantalla completa
   const mainCanvas = createCanvas(windowWidth, windowHeight);
   mainCanvas.parent(document.body);
   pixelDensity(1); // 60 FPS estables
 
-  // 2. Crear Buffer Secundario 2D (inkBuffer)
+  // Buffer secundario de pintura acumulada
   inkBuffer = createGraphics(windowWidth, windowHeight);
   inkBuffer.pixelDensity(1);
   resetInkBuffer();
 
-  // 3. Inicializar Motores de Fluidos, Audio e Interfaz
+  // Inicializar Motores
   fluidSystem = new PhysarumFluidSystem();
   audioEngine = new AudioReactiveEngine();
+  choreographyEngine = new ChoreographyEngine();
   simGUI = new SimulationGUI();
 
-  // 4. Inicializar Poblaciones de Agentes (Tinta y Limpiadores)
+  // Inicializar Poblaciones (650 Negras y 280 Blancas)
   initAgents();
   initCleanerAgents();
 
-  // 5. Aplicar la Escena Inicial (Acto I: Cisne Blanco)
-  switchScene(1, false);
-
-  // 6. Configuración de cursor interactivo
   noCursor();
 }
 
@@ -160,11 +55,17 @@ function setup() {
  * Bucle Principal de Renderizado (draw)
  */
 function draw() {
-  // --- ACTUALIZACIÓN DE AUDIO REACTIVO ---
+  // 1. Métricas de Audio y Tiempo
   const audioData = audioEngine ? audioEngine.update() : {};
+  const currentSongTime = (audioEngine && audioEngine.audioElement) ? audioEngine.audioElement.currentTime : 0;
 
-  // Actualizar medidor visual en el HUD
-  updateAudioVisualizer(audioData);
+  // 2. Actualizar Motor de Coreografía (262 Beats con Time-lapse orgánico)
+  if (choreographyEngine) {
+    choreographyEngine.update(currentSongTime);
+  }
+
+  // 3. Actualizar HUD y Medidores
+  updateChoreographyUI(audioData, currentSongTime);
 
   // --- FASE 1: SIMULACIÓN ACTIVA ---
   if (!isSimulationPaused) {
@@ -172,9 +73,19 @@ function draw() {
     const currentPhysParams = simGUI ? simGUI.params.physarum : {};
     const currentCleanerParams = simGUI ? simGUI.params.cleaners : {};
     const currentFluidParams = simGUI ? simGUI.params.fluid : {};
-    const activePalette = currentPhysParams.palette || 'black-swan';
 
-    // 1. Interacción del Cursor (Espátula / Vertido adaptado a la música)
+    // A. Interacción y Agitación del Cursor (Molestar y alterar partículas)
+    fluidSystem.disturbSwarmWithCursor(
+      [agents, cleanerAgents],
+      mouseX,
+      mouseY,
+      pmouseX,
+      pmy(),
+      currentCursorParams,
+      mouseIsPressed,
+      audioData
+    );
+
     if (mouseIsPressed) {
       let activeParams = { ...currentCursorParams };
       if (keyIsDown(SHIFT) || mouseButton === RIGHT) {
@@ -185,81 +96,126 @@ function draw() {
 
       fluidSystem.applyCursorStimulus(
         inkBuffer,
-        agents,
         mouseX,
         mouseY,
         pmouseX,
         pmy(),
         activeParams,
-        activePalette,
+        choreographyEngine,
         audioData
       );
     }
 
-    // 2. Cargar píxeles para lectura de sensores de alta velocidad
+    // B. Cargar píxeles para lectura de sensores
     inkBuffer.loadPixels();
     const pixelArray = inkBuffer.pixels;
     const bufW = inkBuffer.width;
     const bufH = inkBuffer.height;
 
-    // 3. Actualizar Agentes Creadores de Tinta
+    // C. Actualizar Partículas de Tinta Negra (Pintan y trazan filamentos)
     for (let i = 0; i < agents.length; i++) {
-      agents[i].update(pixelArray, bufW, bufH, inkBuffer, currentPhysParams, audioData);
+      agents[i].update(pixelArray, bufW, bufH, inkBuffer, currentPhysParams, audioData, choreographyEngine);
     }
 
-    // 4. Actualizar Agentes Limpiadores / Borradores de Luz (Autonomía Ecológica)
+    // D. Actualizar Partículas Blancas Limpiadoras (Borran con aerógrafos y pluma en beats)
     if (currentCleanerParams.enableCleaners) {
       for (let j = 0; j < cleanerAgents.length; j++) {
-        cleanerAgents[j].update(pixelArray, bufW, bufH, inkBuffer, currentCleanerParams, audioData);
+        cleanerAgents[j].update(pixelArray, bufW, bufH, inkBuffer, currentCleanerParams, audioData, choreographyEngine);
       }
     }
 
-    // 5. Física de Fluidos: Difusión capilar y Secado progresivo
-    fluidSystem.processFluidDynamics(inkBuffer, currentFluidParams, audioData);
+    // E. Física de Fluidos: Difusión y Secado con tinte progresivo de fondo
+    fluidSystem.processFluidDynamics(inkBuffer, currentFluidParams, audioData, choreographyEngine);
   }
 
   // --- FASE 2: RENDERIZADO VISUAL ---
   image(inkBuffer, 0, 0, width, height);
 
-  // Renderizar indicador visual del cursor
+  // Renderizar la presencia luminosa de las partículas blancas
+  if (simGUI && simGUI.params.cleaners.enableCleaners) {
+    for (let j = 0; j < cleanerAgents.length; j++) {
+      cleanerAgents[j].renderBody(audioData, choreographyEngine);
+    }
+  }
+
+  // Renderizar guía visual del cursor
   if (simGUI && simGUI.params.cursor.showCursorRing) {
-    const currentPhysParams = simGUI ? simGUI.params.physarum : {};
     fluidSystem.renderCursorFeedback(
       this,
       mouseX,
       mouseY,
       simGUI.params.cursor,
-      currentPhysParams.palette,
+      choreographyEngine,
       audioData
     );
   }
 
-  // Actualizar métricas en el HUD
-  updateHUDMetrics();
+  // Métricas FPS
+  updateFPSMetrics();
 }
 
 /**
- * Helper para posición Y previa segura
+ * Helper para posición previa segura
  */
 function pmy() {
   return pmouseY !== undefined ? pmouseY : mouseY;
 }
 
 /**
- * Actualiza el medidor de energía orquestal en el HUD
+ * Formatea segundos a "m:ss"
  */
-function updateAudioVisualizer(audioData) {
+function formatTime(sec) {
+  const m = Math.floor(sec / 60);
+  const s = Math.floor(sec % 60);
+  return `${m}:${s.toString().padStart(2, '0')}`;
+}
+
+/**
+ * Actualiza la información visual en el HUD y en la esquina inferior izquierda
+ */
+function updateChoreographyUI(audioData, songTime) {
+  if (!choreographyEngine) return;
+
+  const info = choreographyEngine.getChoreographyInfo();
+  const timeStr = formatTime(songTime);
+
+  // 1. Medidor de beat en HUD
+  const beatLabel = document.getElementById('beat-label');
   const meterFill = document.getElementById('meter-fill');
   const meterVal = document.getElementById('meter-val');
-  if (meterFill && meterVal) {
-    const pct = Math.round((audioData.energy || 0) * 100);
-    meterFill.style.width = `${pct}%`;
-    meterVal.innerText = `${pct}%`;
+  const simState = document.getElementById('hud-sim-state');
+
+  if (beatLabel) beatLabel.innerText = `Beat: ${info.category}`;
+  if (meterFill) meterFill.style.width = `${info.weight}%`;
+  if (meterVal) meterVal.innerText = `${info.weight}%`;
+  if (simState) simState.innerText = `Tiempo: ${timeStr}`;
+
+  // 2. Indicador en la esquina inferior izquierda
+  const romanElem = document.getElementById('scene-roman');
+  const titleElem = document.getElementById('scene-title');
+  const descElem = document.getElementById('scene-desc');
+  const indicator = document.getElementById('scene-indicator');
+
+  if (romanElem) romanElem.innerText = info.category.toUpperCase();
+  if (titleElem) titleElem.innerText = info.mode;
+  if (descElem) {
+    descElem.innerText = info.isBigBang
+      ? 'Orbe Gravitatorio Central en Vórtice & Fondo Vino Tinto'
+      : 'Mandalas Botánicas en Blanco & Rubor';
+  }
+
+  if (indicator) {
+    indicator.className = `scene-indicator-container ${info.isBigBang ? 'act-3' : 'act-1'}`;
+  }
+
+  // 3. Sincronizar lectura con GUI
+  if (simGUI) {
+    simGUI.updateChoreographyReadout(info, timeStr);
   }
 }
 
 /**
- * Inicia la reproducción de la música y desbloquea el contexto de audio
+ * Desbloquea y arranca el audio
  */
 function startAudioPerformance() {
   const prompt = document.getElementById('audio-start-prompt');
@@ -270,15 +226,12 @@ function startAudioPerformance() {
   if (audioEngine) {
     audioEngine.play().then((success) => {
       if (success && simGUI) {
-        simGUI.showToast('🎵 Música activada: BTS - Black Swan');
+        simGUI.showToast('🎵 Coreografía de 262 Beats iniciada');
       }
     });
   }
 }
 
-/**
- * Evento al hacer clic en el lienzo: si el audio no ha iniciado, desbloquearlo
- */
 function mousePressed() {
   if (audioEngine && !audioEngine.isPlaying && !audioEngine.hasUserInteracted) {
     startAudioPerformance();
@@ -286,127 +239,53 @@ function mousePressed() {
 }
 
 /**
- * ============================================================================
- * TRANSICIÓN DE ESCENAS DRAMÁTICAS (ACTOS 1 AL 4)
- * ============================================================================
- */
-function switchScene(sceneId, notify = true) {
-  const scene = SCENES[sceneId];
-  if (!scene) return;
-
-  currentSceneId = sceneId;
-
-  if (simGUI) {
-    // Parámetros de fluido
-    simGUI.params.fluid.evaporationRate = scene.evaporationRate;
-    simGUI.params.fluid.diffusionRate = scene.diffusionRate;
-
-    // Parámetros de agentes de tinta
-    simGUI.params.physarum.stepSize = scene.stepSize;
-    simGUI.params.physarum.sensorAngle = scene.sensorAngle;
-    simGUI.params.physarum.sensorDist = scene.sensorDist;
-    simGUI.params.physarum.turnAngle = scene.turnAngle;
-    simGUI.params.physarum.depositRadius = scene.depositRadius;
-    simGUI.params.physarum.depositAlpha = scene.depositAlpha;
-    simGUI.params.physarum.palette = scene.palette;
-    simGUI.params.physarum.numAgents = scene.targetAgents;
-
-    // Parámetros de agentes limpiadores
-    if (scene.targetCleaners !== undefined) {
-      simGUI.params.cleaners.numCleaners = scene.targetCleaners;
-      simGUI.params.cleaners.cleanerRadius = scene.cleanerRadius || 28;
-      simGUI.params.cleaners.cleanerStrength = scene.cleanerStrength || 22;
-      simGUI.params.cleaners.cleanerSpeed = scene.cleanerSpeed || 1.3;
-    }
-
-    // Parámetros de cursor
-    simGUI.params.cursor.cursorMode = scene.cursorMode;
-    simGUI.params.cursor.cursorRadius = scene.cursorRadius;
-    simGUI.params.cursor.cursorStrength = scene.cursorStrength;
-
-    simGUI.params.currentSceneName = scene.guiName;
-    simGUI.updateDisplay();
-
-    if (notify) {
-      simGUI.showToast(`${scene.roman}: ${scene.name} (${scene.subtitle})`);
-    }
-  }
-
-  // Sincronizar recuentos de poblaciones
-  setAgentCount(scene.targetAgents);
-  setCleanerCount(scene.targetCleaners || 20);
-
-  // Actualizar indicador visual DOM
-  const romanElem = document.getElementById('scene-roman');
-  const titleElem = document.getElementById('scene-title');
-  const descElem = document.getElementById('scene-desc');
-  const indicator = document.getElementById('scene-indicator');
-
-  if (romanElem) romanElem.innerText = scene.roman;
-  if (titleElem) titleElem.innerText = scene.name;
-  if (descElem) descElem.innerText = scene.subtitle;
-  if (indicator) {
-    indicator.className = `scene-indicator-container act-${scene.id}`;
-  }
-}
-
-/**
- * Inicializa la población de agentes de tinta
+ * Inicialización de Poblaciones Multi-Nodo (Centro + Satélites Laterales)
  */
 function initAgents() {
-  const targetCount = simGUI ? simGUI.params.physarum.numAgents : 160;
-  const spawnMode = simGUI ? simGUI.params.physarum.spawnMode : 'Centro Circular';
+  const targetCount = simGUI ? simGUI.params.physarum.numAgents : 650;
   const config = simGUI ? simGUI.params.physarum : {};
 
   agents = [];
   const cx = width / 2;
   const cy = height / 2;
+  const nodes = choreographyEngine ? choreographyEngine.getAttractorNodes(cx, cy) : [{ id: 0, x: cx, y: cy }];
 
   for (let i = 0; i < targetCount; i++) {
-    let x, y, angle;
+    const nodeIdx = i % nodes.length;
+    const node = nodes[nodeIdx];
+    const r = random(5, min(width, height) * 0.20);
+    const theta = random(TWO_PI);
+    const x = node.x + Math.cos(theta) * r;
+    const y = node.y + Math.sin(theta) * r;
+    const angle = theta + random(-0.4, 0.4);
 
-    if (spawnMode === 'Centro Circular') {
-      const r = random(5, min(width, height) * 0.18);
-      const theta = random(TWO_PI);
-      x = cx + Math.cos(theta) * r;
-      y = cy + Math.sin(theta) * r;
-      angle = theta + random(-0.4, 0.4);
-    } else if (spawnMode === 'Anillo Perimetral') {
-      const r = min(width, height) * 0.42;
-      const theta = random(TWO_PI);
-      x = cx + Math.cos(theta) * r;
-      y = cy + Math.sin(theta) * r;
-      angle = theta + Math.PI + random(-0.3, 0.3);
-    } else {
-      x = random(width);
-      y = random(height);
-      angle = random(TWO_PI);
-    }
-
-    agents.push(new Agent(x, y, angle, config));
+    const ag = new Agent(x, y, angle, config);
+    ag.targetNodeId = node.id;
+    agents.push(ag);
   }
 }
 
-/**
- * Inicializa la población de agentes limpiadores
- */
 function initCleanerAgents() {
-  const targetCount = simGUI ? simGUI.params.cleaners.numCleaners : 28;
+  const targetCount = simGUI ? simGUI.params.cleaners.numCleaners : 280;
   const config = simGUI ? simGUI.params.cleaners : {};
 
   cleanerAgents = [];
   const cx = width / 2;
   const cy = height / 2;
+  const nodes = choreographyEngine ? choreographyEngine.getAttractorNodes(cx, cy) : [{ id: 0, x: cx, y: cy }];
 
   for (let i = 0; i < targetCount; i++) {
-    // Siembra dispersa en corona para patrullaje óptimo
-    const r = random(min(width, height) * 0.15, min(width, height) * 0.45);
+    const nodeIdx = i % nodes.length;
+    const node = nodes[nodeIdx];
+    const r = random(min(width, height) * 0.04, min(width, height) * 0.22);
     const theta = random(TWO_PI);
-    const x = cx + Math.cos(theta) * r;
-    const y = cy + Math.sin(theta) * r;
-    const angle = theta + Math.PI / 2 + random(-0.5, 0.5); // Órbita tangencial
+    const x = node.x + Math.cos(theta) * r;
+    const y = node.y + Math.sin(theta) * r;
+    const angle = theta + Math.PI / 2 + random(-0.4, 0.4);
 
-    cleanerAgents.push(new CleanerAgent(x, y, angle, config));
+    const cl = new CleanerAgent(x, y, angle, config);
+    cl.targetNodeId = node.id;
+    cleanerAgents.push(cl);
   }
 }
 
@@ -419,7 +298,7 @@ function setAgentCount(newCount) {
     const cx = width / 2;
     const cy = height / 2;
     for (let i = 0; i < toAdd; i++) {
-      const r = random(10, min(width, height) * 0.2);
+      const r = random(5, min(width, height) * 0.25);
       const theta = random(TWO_PI);
       agents.push(new Agent(cx + Math.cos(theta) * r, cy + Math.sin(theta) * r, theta, config));
     }
@@ -434,8 +313,12 @@ function setCleanerCount(newCount) {
 
   if (newCount > currentCount) {
     const toAdd = newCount - currentCount;
+    const cx = width / 2;
+    const cy = height / 2;
     for (let i = 0; i < toAdd; i++) {
-      cleanerAgents.push(new CleanerAgent(random(width), random(height), random(TWO_PI), config));
+      const r = random(5, min(width, height) * 0.28);
+      const theta = random(TWO_PI);
+      cleanerAgents.push(new CleanerAgent(cx + Math.cos(theta) * r, cy + Math.sin(theta) * r, random(TWO_PI), config));
     }
   } else if (newCount < currentCount) {
     cleanerAgents.length = newCount;
@@ -449,52 +332,55 @@ function reseedAgentsPool() {
 
 function resetInkBuffer() {
   if (inkBuffer) {
-    inkBuffer.background(COLOR_MARFIL);
+    const bg = choreographyEngine ? choreographyEngine.currentBg : { r: 245, g: 245, b: 245 };
+    inkBuffer.background(bg.r, bg.g, bg.b);
   }
 }
 
 function toggleFullscreenMode() {
-  const isFS = fullscreen();
-  fullscreen(!isFS);
-  if (simGUI) {
-    simGUI.showToast(!isFS ? 'Pantalla Completa Activada (F)' : 'Pantalla Completa Desactivada (F)');
+  const isFS = !fullscreen();
+  fullscreen(isFS);
+  if (isFS) {
+    document.body.classList.add('is-fullscreen');
+  } else {
+    document.body.classList.remove('is-fullscreen');
   }
 }
+
+document.addEventListener('fullscreenchange', () => {
+  const isFS = !!(document.fullscreenElement || document.webkitFullscreenElement);
+  document.body.classList.toggle('is-fullscreen', isFS);
+});
+document.addEventListener('webkitfullscreenchange', () => {
+  const isFS = !!(document.fullscreenElement || document.webkitFullscreenElement);
+  document.body.classList.toggle('is-fullscreen', isFS);
+});
 
 function windowResized() {
   resizeCanvas(windowWidth, windowHeight);
 
+  const bg = choreographyEngine ? choreographyEngine.currentBg : { r: 245, g: 245, b: 245 };
   const tempBuffer = createGraphics(windowWidth, windowHeight);
   tempBuffer.pixelDensity(1);
-  tempBuffer.background(COLOR_MARFIL);
-  tempBuffer.image(inkBuffer, 0, 0);
+  tempBuffer.background(bg.r, bg.g, bg.b);
+  tempBuffer.image(inkBuffer, 0, 0, windowWidth, windowHeight);
 
   inkBuffer = tempBuffer;
 }
 
 /**
- * ============================================================================
- * CONTROL DE TECLADO Y PAUSA
- * ============================================================================
+ * Control de Teclado
  */
 function keyPressed() {
   if (audioEngine && !audioEngine.isPlaying && !audioEngine.hasUserInteracted) {
     startAudioPerformance();
   }
 
-  // Teclas 1, 2, 3, 4: Cambio de Escenas
-  if (key === '1') { switchScene(1); return false; }
-  if (key === '2') { switchScene(2); return false; }
-  if (key === '3') { switchScene(3); return false; }
-  if (key === '4') { switchScene(4); return false; }
-
-  // Tecla 'F' o 'f': Pantalla Completa
   if (key === 'f' || key === 'F') {
     toggleFullscreenMode();
     return false;
   }
 
-  // Tecla 'P', 'p' o Barra Espaciadora: Pausa
   if (key === 'p' || key === 'P' || keyCode === 32) {
     togglePauseSimulation(!isSimulationPaused);
     return false;
@@ -523,19 +409,13 @@ function togglePauseSimulation(pauseState) {
   }
 }
 
-/**
- * ============================================================================
- * HUD & MÉTRICAS
- * ============================================================================
- */
 let lastFpsUpdate = 0;
-function updateHUDMetrics() {
+function updateFPSMetrics() {
   if (millis() - lastFpsUpdate > 250) {
     const fpsElement = document.getElementById('hud-fps');
     if (fpsElement) {
       const currentFPS = Math.round(frameRate());
-      const scene = SCENES[currentSceneId] || SCENES[1];
-      fpsElement.innerText = `FPS: ${currentFPS} | ${scene.roman} | Tinta: ${agents.length} | Limpieza: ${cleanerAgents.length}`;
+      fpsElement.innerText = `FPS: ${currentFPS} | Tinta: ${agents.length} | Limpiadores: ${cleanerAgents.length}`;
     }
     lastFpsUpdate = millis();
   }

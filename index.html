@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Simulación Poética 2D - Unidad 6 | UPB</title>
-  <meta name="description" content="Simulación generativa 2D de Physarum y Creative Coding inspirada en Black Swan y Can't Help Myself para la Universidad Pontificia Bolivariana.">
+  <meta name="description" content="Simulación generativa 2D de Physarum y Coreografía Musical de 262 Beats de Black Swan para la Universidad Pontificia Bolivariana.">
 
   <!-- Tipografía moderna Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -25,11 +25,11 @@
   <aside id="hud-overlay" class="hud-container">
     <header class="hud-header">
       <h1 class="hud-title">Simulación Poética 2D</h1>
-      <p class="hud-subtitle">Unidad 6 — Creative Coding & Sistemas Emergentes (UPB)</p>
+      <p class="hud-subtitle">Coreografía de 262 Beats · BTS Black Swan (UPB)</p>
     </header>
 
     <div class="hud-controls-info">
-      <div class="hud-badge"><kbd>1</kbd>–<kbd>4</kbd> <span>Escenas Dramáticas (Black Swan)</span></div>
+      <div class="hud-badge"><kbd>Click</kbd> <span>Iniciar Música & Performance</span></div>
       <div class="hud-badge"><kbd>C</kbd> <span>Alternar Espátula / Vertido</span></div>
       <div class="hud-badge"><kbd>P</kbd> / <kbd>Espacio</kbd> <span>Pausar Simulación & Audio</span></div>
       <div class="hud-badge"><kbd>F</kbd> <span>Pantalla Completa</span></div>
@@ -39,7 +39,7 @@
     <!-- Indicador de Reactividad Espectral de Audio -->
     <div class="hud-audio-meter">
       <div class="audio-meter-label">
-        <span>Energía Orquestal:</span>
+        <span id="beat-label">Intensidad Beat: SÚPER BAJO</span>
         <span id="meter-val">0%</span>
       </div>
       <div class="audio-meter-track">
@@ -52,18 +52,18 @@
       <span class="hud-divider">•</span>
       <span id="hud-audio-state">Audio: Esperando inicio</span>
       <span class="hud-divider">•</span>
-      <span id="hud-sim-state">Estado: En marcha</span>
+      <span id="hud-sim-state">Tiempo: 0:00</span>
     </footer>
   </aside>
 
-  <!-- Indicador Discreto de Escena Dramática (Esquina Inferior Izquierda) -->
+  <!-- Indicador Discreto de Coreografía Musical (Esquina Inferior Izquierda) -->
   <aside id="scene-indicator" class="scene-indicator-container">
-    <div class="scene-tag">NARRATIVA DRAMÁTICA</div>
+    <div class="scene-tag">COREOGRAFÍA RÍTMICA (262 BEATS)</div>
     <div class="scene-main">
-      <span id="scene-roman" class="scene-roman">ACTO I</span>
+      <span id="scene-roman" class="scene-roman">BEAT</span>
       <div class="scene-details">
-        <h2 id="scene-title" class="scene-name">CISNE BLANCO</h2>
-        <p id="scene-desc" class="scene-sub">Orden & Lienzo Limpio</p>
+        <h2 id="scene-title" class="scene-name">SÚPER BAJO</h2>
+        <p id="scene-desc" class="scene-sub">Mandalas Botánicas en Blanco & Rubor</p>
       </div>
     </div>
   </aside>
@@ -73,7 +73,7 @@
     <div class="prompt-icon">🎵</div>
     <div class="prompt-text">
       <strong>Haz clic aquí o en cualquier parte</strong>
-      <span>para iniciar la música y activar la simulación reactiva</span>
+      <span>para iniciar la música y activar la coreografía reactiva</span>
     </div>
   </div>
 
@@ -81,6 +81,7 @@
   <div id="toast-message" class="toast-message"></div>
 
   <!-- Scripts de la aplicación -->
+  <script src="js/choreography.js"></script>
   <script src="js/audio.js"></script>
   <script src="js/agent.js"></script>
   <script src="js/cleanerAgent.js"></script>

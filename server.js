@@ -13,9 +13,9 @@ const fs = require('fs');
 const path = require('path');
 const { exec } = require('child_process');
 
-const PORT = process.env.PORT || 3000;
+let PORT = parseInt(process.env.PORT, 10) || 3000;
 
-// Mapa completo de tipos MIME para soportar HTML, CSS, JS, Fuentes y Audio MP3
+// Mapa completo de tipos MIME
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
@@ -38,13 +38,11 @@ const MIME_TYPES = {
 };
 
 const server = http.createServer((req, res) => {
-  // Limpiar URL y extraer ruta relativa segura
   let reqPath = decodeURIComponent(req.url.split('?')[0]);
   if (reqPath === '/' || reqPath === '') {
     reqPath = '/index.html';
   }
 
-  // Prevenir Directory Traversal (seguridad de rutas relativas)
   const safePath = path.normalize(reqPath).replace(/^(\.\.[\/\\])+/, '');
   const filePath = path.join(__dirname, safePath);
 
@@ -58,7 +56,7 @@ const server = http.createServer((req, res) => {
     const ext = path.extname(filePath).toLowerCase();
     const contentType = MIME_TYPES[ext] || 'application/octet-stream';
 
-    // Manejo de streaming para el audio MP3 (soporte para Range requests)
+    // Soporte para streaming de audio MP3
     const range = req.headers.range;
     if (range && ext === '.mp3') {
       const totalSize = stats.size;
@@ -80,7 +78,6 @@ const server = http.createServer((req, res) => {
       return;
     }
 
-    // Respuesta estándar de archivo
     res.writeHead(200, {
       'Content-Type': contentType,
       'Content-Length': stats.size,
@@ -93,25 +90,34 @@ const server = http.createServer((req, res) => {
   });
 });
 
-server.listen(PORT, () => {
-  const url = `http://localhost:${PORT}`;
-  console.log(`\n============================================================`);
-  console.log(`  🦢 UPB · SIMULACIÓN UNIDAD 6: AGENTES AUTÓNOMOS`);
-  console.log(`  🎵 Tema: BTS Black Swan (Performance Interactivo)`);
-  console.log(`  🚀 Servidor activo en: \x1b[36m${url}\x1b[0m`);
-  console.log(`  ⌨️  Presiona Ctrl+C en la terminal para detener`);
-  console.log(`============================================================\n`);
+function startServer(portToTry) {
+  server.listen(portToTry, () => {
+    const url = `http://localhost:${portToTry}`;
+    console.log(`\n============================================================`);
+    console.log(`  🦢 UPB · SIMULACIÓN UNIDAD 6: AGENTES AUTÓNOMOS`);
+    console.log(`  🎵 Tema: BTS Black Swan (Performance Interactivo)`);
+    console.log(`  🚀 Servidor activo en: \x1b[36m${url}\x1b[0m`);
+    console.log(`  ⌨️  Presiona Ctrl+C en Git Bash para detener`);
+    console.log(`============================================================\n`);
 
-  // Apertura automática del navegador según el sistema operativo
-  const startCmd = process.platform === 'win32'
-    ? `start "" "${url}"`
-    : process.platform === 'darwin'
-    ? `open "${url}"`
-    : `xdg-open "${url}"`;
+    const startCmd = process.platform === 'win32'
+      ? `start "" "${url}"`
+      : process.platform === 'darwin'
+      ? `open "${url}"`
+      : `xdg-open "${url}"`;
 
-  exec(startCmd, (err) => {
-    if (err) {
-      console.log(`💡 Para ver la simulación, abre en tu navegador: ${url}`);
-    }
+    exec(startCmd, () => {});
   });
+}
+
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.log(`⚠️  Puerto ${PORT} en uso, intentando puerto ${PORT + 1}...`);
+    PORT++;
+    startServer(PORT);
+  } else {
+    console.error('Error al iniciar el servidor:', err);
+  }
 });
+
+startServer(PORT);

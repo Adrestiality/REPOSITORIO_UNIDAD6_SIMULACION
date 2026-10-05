@@ -2,38 +2,35 @@
  * ============================================================================
  * MÓDULO PHYSARUM: FÍSICA DE FLUIDOS Y DINÁMICA DE INTERACCIÓN (UNIDAD 6 - UPB)
  * ============================================================================
- * Difusión capilar, secado reactivo a la música y herramientas interactivas
- * inspiradas en "Can't Help Myself" y el comportamiento de la tinta en agua.
+ * Difusión capilar monocromática, secado y agitación con seducción del cursor:
+ *  - Trazo del cursor en aerógrafo suave multicapa (100% Escala de Grises Pura).
+ *  - Seducción física de partículas (atracción temporal para seguirlos como cometas).
+ *  - Guía visual orgánica del cursor con aura de luz marfil / grafito.
  * ============================================================================
  */
 
 class PhysarumFluidSystem {
   constructor() {
-    this.COLOR_MARFIL_RGB = { r: 244, g: 241, b: 234 };
+    this.COLOR_ALABASTRO_RGB = { r: 245, g: 245, b: 245 };
   }
 
   /**
-   * Procesa la física de fluidos con modulación armónica del audio
-   * 
-   * @param {p5.Graphics} buffer - Buffer de tinta
-   * @param {Object} params - Configuración del fluido
-   * @param {Object} audioData - Métricas espectrales del audio
+   * Procesa la física de fluidos con difusión y secado progresivo
    */
-  processFluidDynamics(buffer, params, audioData = {}) {
+  processFluidDynamics(buffer, params, audioData = {}, choreography = null) {
     if (!buffer) return;
 
     const ctx = buffer.drawingContext;
-    const baseDiffuse = params.diffusionRate !== undefined ? params.diffusionRate : 0.8;
-    const baseEvap = params.evaporationRate !== undefined ? params.evaporationRate : 5;
+    const baseDiffuse = params.diffusionRate !== undefined ? params.diffusionRate : 0.5;
+    const baseEvap = params.evaporationRate !== undefined ? params.evaporationRate : 4.0;
     const enableDiffuse = params.enableDiffusion !== undefined ? params.enableDiffusion : true;
     const enableEvap = params.enableEvaporation !== undefined ? params.enableEvaporation : true;
 
-    const energy = audioData.energy || 0;
     const mid = audioData.mid || 0;
+    const intensity = choreography ? choreography.intensityWeight : 0.2;
 
     // --- 1. DIFUSIÓN CAPILAR EXPANSIVA ---
-    // Las cuerdas orquestales (Mid) intensifican sutilmente la floración en agua
-    const dynamicDiffuse = baseDiffuse * (1.0 + mid * 0.45);
+    const dynamicDiffuse = baseDiffuse * (1.0 + mid * 0.40 + intensity * 0.35);
 
     if (enableDiffuse && dynamicDiffuse > 0.05) {
       ctx.save();
@@ -44,159 +41,170 @@ class PhysarumFluidSystem {
       ctx.restore();
     }
 
-    // --- 2. EVAPORACIÓN / SECADO ORGÁNICO ---
+    // --- 2. EVAPORACIÓN / SECADO CON TINTE PROGRESIVO DE FONDO ---
     if (enableEvap && baseEvap > 0) {
+      const bg = choreography ? choreography.currentBg : this.COLOR_ALABASTRO_RGB;
       buffer.push();
       buffer.noStroke();
-      buffer.fill(
-        this.COLOR_MARFIL_RGB.r,
-        this.COLOR_MARFIL_RGB.g,
-        this.COLOR_MARFIL_RGB.b,
-        baseEvap
-      );
+      buffer.fill(bg.r, bg.g, bg.b, baseEvap);
       buffer.rect(0, 0, buffer.width, buffer.height);
       buffer.pop();
     }
   }
 
   /**
-   * Aplica estímulo interactivo del cursor
+   * Perturba hidrodinámicamente y seduce temporalmente a las partículas cercanas
    */
-  applyCursorStimulus(buffer, agents, mx, my, pmx, pmy, params, activePalette = 'black-swan', audioData = {}) {
-    const mode = params.cursorMode || 'Espátula / Limpiador';
-    const baseRadius = params.cursorRadius || 55;
-    const strength = params.cursorStrength || 1.0;
+  disturbSwarmWithCursor(allAgentArrays, mx, my, pmx, pmy, params, isPressed, audioData = {}) {
+    const baseRadius = params.cursorRadius || 65;
     const beatPulse = audioData.beatPulse || 0;
-    const radius = baseRadius * (1.0 + beatPulse * 0.3);
+    const radius = baseRadius * (1.1 + beatPulse * 0.25);
+    const radiusSq = radius * radius;
 
-    if (mode === 'Espátula / Limpiador') {
-      // === MODO ESPÁTULA ("Can't Help Myself") ===
-      buffer.push();
-      buffer.stroke(
-        this.COLOR_MARFIL_RGB.r,
-        this.COLOR_MARFIL_RGB.g,
-        this.COLOR_MARFIL_RGB.b,
-        Math.min(255, 190 * strength)
-      );
-      buffer.strokeWeight(radius);
-      buffer.strokeCap(ROUND);
-      buffer.line(pmx, pmy, mx, my);
+    const vx = mx - pmx;
+    const vy = my - pmy;
+    const mouseSpeed = Math.hypot(vx, vy);
+    const mode = params.cursorMode || 'Espátula / Limpiador';
 
-      buffer.noStroke();
-      buffer.fill(
-        this.COLOR_MARFIL_RGB.r,
-        this.COLOR_MARFIL_RGB.g,
-        this.COLOR_MARFIL_RGB.b,
-        Math.min(255, 220 * strength)
-      );
-      buffer.circle(mx, my, radius);
-      buffer.pop();
-
-      // Repulsión física de agentes
-      const repulseRadiusSq = (radius * 1.3) * (radius * 1.3);
-      for (let i = 0; i < agents.length; i++) {
-        const ag = agents[i];
+    for (let arr = 0; arr < allAgentArrays.length; arr++) {
+      const list = allAgentArrays[arr];
+      for (let i = 0; i < list.length; i++) {
+        const ag = list[i];
         const dx = ag.x - mx;
         const dy = ag.y - my;
         const dSq = dx * dx + dy * dy;
 
-        if (dSq < repulseRadiusSq && dSq > 0.001) {
+        if (dSq < radiusSq && dSq > 0.01) {
           const d = Math.sqrt(dSq);
-          const pushForce = (1 - d / (radius * 1.3)) * 5.2 * strength;
+          const force = 1.0 - d / radius;
           const awayAngle = Math.atan2(dy, dx);
 
-          ag.angle = awayAngle + (Math.random() - 0.5) * 0.3;
-          ag.x += Math.cos(awayAngle) * pushForce;
-          ag.y += Math.sin(awayAngle) * pushForce;
-        }
-      }
+          // 1. Seducción temporal por el mouse
+          if (ag.mouseSeducedTimer <= 0 && Math.random() < 0.45) {
+            ag.mouseSeducedTimer = Math.floor(random(70, 160));
+            ag.mouseTargetX = mx + (Math.random() - 0.5) * 30;
+            ag.mouseTargetY = my + (Math.random() - 0.5) * 30;
+          } else if (ag.mouseSeducedTimer > 0) {
+            ag.mouseTargetX = mx;
+            ag.mouseTargetY = my;
+          }
 
-    } else {
-      // === MODO VERTIDO DE TINTA (Atrayente quimiotáctico orgánico) ===
-      buffer.push();
-      buffer.noStroke();
+          // 2. Arrastre por velocidad del mouse
+          if (mouseSpeed > 0.4) {
+            ag.x += vx * force * 0.35;
+            ag.y += vy * force * 0.35;
+            ag.angle += (Math.atan2(vy, vx) - ag.angle) * force * 0.20;
+          }
 
-      if (activePalette === 'gold') {
-        buffer.fill(197, 160, 89, 45 * strength);
-        buffer.circle(mx, my, radius * 1.4);
-        buffer.fill(160, 115, 45, 140 * strength);
-        buffer.circle(mx, my, radius * 0.8);
-      } else if (activePalette === 'white-swan') {
-        buffer.fill(55, 58, 65, 35 * strength);
-        buffer.circle(mx, my, radius * 1.3);
-        buffer.fill(35, 38, 42, 110 * strength);
-        buffer.circle(mx, my, radius * 0.7);
-      } else {
-        buffer.fill(42, 6, 14, 55 * strength);
-        buffer.circle(mx, my, radius * 1.5);
-        buffer.fill(12, 14, 18, 180 * strength);
-        buffer.circle(mx, my, radius * 0.85);
-      }
+          // 3. Remolino tangencial
+          const tangentAngle = awayAngle + Math.PI / 2;
+          ag.angle += (tangentAngle - ag.angle) * force * 0.28 + (Math.random() - 0.5) * 0.15;
 
-      // Salpicaduras y gotas periféricas orgánicas
-      const numSplashes = 3 + Math.floor(beatPulse * 4);
-      for (let s = 0; s < numSplashes; s++) {
-        const angle = Math.random() * TWO_PI;
-        const r = (radius * 0.45) + Math.random() * (radius * 0.65);
-        if (activePalette === 'gold') {
-          buffer.fill(197, 160, 89, 90 * strength);
-        } else {
-          buffer.fill(24, 10, 18, 95 * strength);
-        }
-        buffer.circle(mx + Math.cos(angle) * r, my + Math.sin(angle) * r, Math.random() * 8 + 3);
-      }
-      buffer.pop();
-
-      // Atracción quimiotáctica
-      const attractRadiusSq = (radius * 2.8) * (radius * 2.8);
-      for (let i = 0; i < agents.length; i++) {
-        const ag = agents[i];
-        const dx = mx - ag.x;
-        const dy = my - ag.y;
-        const dSq = dx * dx + dy * dy;
-
-        if (dSq < attractRadiusSq && dSq > 4) {
-          const towardsAngle = Math.atan2(dy, dx);
-          ag.angle = towardsAngle + (Math.random() - 0.5) * 0.2;
+          // 4. Si se presiona clic
+          if (isPressed) {
+            if (mode === 'Espátula / Limpiador') {
+              const pushForce = force * 6.0;
+              ag.x += Math.cos(awayAngle) * pushForce;
+              ag.y += Math.sin(awayAngle) * pushForce;
+              ag.angle = awayAngle + (Math.random() - 0.5) * 0.4;
+            } else {
+              const pullForce = force * 4.5;
+              ag.x -= Math.cos(awayAngle) * pullForce;
+              ag.y -= Math.sin(awayAngle) * pullForce;
+              ag.angle = Math.atan2(-dy, -dx) + (Math.random() - 0.5) * 0.3;
+            }
+          }
         }
       }
     }
   }
 
   /**
-   * Renderiza el aro y guía visual del cursor
+   * Aplica depósito en aerógrafo suave difuminado sobre el buffer (100% Escala de Grises)
    */
-  renderCursorFeedback(p, mx, my, params, activePalette = 'black-swan', audioData = {}) {
+  applyCursorStimulus(buffer, mx, my, pmx, pmy, params, choreography = null, audioData = {}) {
+    const mode = params.cursorMode || 'Espátula / Limpiador';
+    const baseRadius = params.cursorRadius || 65;
+    const strength = params.cursorStrength || 1.0;
+    const beatPulse = audioData.beatPulse || 0;
+    const radius = baseRadius * (1.0 + beatPulse * 0.2);
+    const bg = choreography ? choreography.currentBg : this.COLOR_ALABASTRO_RGB;
+
+    buffer.push();
+    buffer.noStroke();
+
+    const distMoved = Math.hypot(mx - pmx, my - pmy);
+    const steps = Math.max(1, Math.min(10, Math.ceil(distMoved / (radius * 0.25))));
+
+    for (let step = 0; step <= steps; step++) {
+      const t = steps > 0 ? step / steps : 1;
+      const x = pmx + (mx - pmx) * t;
+      const y = pmy + (my - pmy) * t;
+
+      if (mode === 'Espátula / Limpiador') {
+        // Aerógrafo borrador (degradado concéntrico suave hacia el fondo)
+        for (let r = radius; r >= 4; r -= radius / 5) {
+          const normR = r / radius;
+          const alpha = Math.min(255, 110 * strength * Math.pow(1.0 - normR, 1.6));
+          buffer.fill(bg.r, bg.g, bg.b, alpha);
+          buffer.circle(x, y, r * 2);
+        }
+      } else {
+        // Aerógrafo vertido de tinta (Negro monocromático puro R = G = B = 0)
+        for (let r = radius; r >= 4; r -= radius / 5) {
+          const normR = r / radius;
+          const alpha = Math.min(255, 95 * strength * Math.pow(1.0 - normR, 1.8));
+          buffer.fill(0, 0, 0, alpha);
+          buffer.circle(x, y, r * 2);
+        }
+      }
+    }
+
+    buffer.pop();
+  }
+
+  /**
+   * Renderiza la guía visual orgánica del cursor (100% Escala de Grises Pura)
+   */
+  renderCursorFeedback(p, mx, my, params, choreography = null, audioData = {}) {
     if (mx < 0 || mx > width || my < 0 || my > height) return;
 
     const mode = params.cursorMode || 'Espátula / Limpiador';
-    const baseRadius = params.cursorRadius || 55;
+    const baseRadius = params.cursorRadius || 65;
     const beatPulse = audioData.beatPulse || 0;
     const radius = baseRadius * (1.0 + beatPulse * 0.15);
 
     push();
     noFill();
+
     if (mode === 'Espátula / Limpiador') {
-      stroke(197, 160, 89, 150 + beatPulse * 80);
-      strokeWeight(1.5);
-      circle(mx, my, radius);
-      
-      stroke(197, 160, 89, 210);
-      strokeWeight(2);
-      line(mx - radius * 0.45, my, mx + radius * 0.45, my);
-    } else {
-      if (activePalette === 'gold') {
-        stroke(197, 160, 89, 180 + beatPulse * 60);
-      } else {
-        stroke(40, 42, 48, 160 + beatPulse * 80);
-      }
-      strokeWeight(1.5);
-      circle(mx, my, radius);
-      
-      fill(activePalette === 'gold' ? '#c5a059' : '#181a1e');
+      // Aura de luz blanca / marfil neutra
+      stroke(245, 245, 245, 45 + beatPulse * 40);
+      strokeWeight(2.5);
+      circle(mx, my, radius * 2.0);
+
+      stroke(245, 245, 245, 140 + beatPulse * 70);
+      strokeWeight(1.2);
+      circle(mx, my, radius * 1.5);
+
+      fill(255, 255, 255, 220);
       noStroke();
-      circle(mx, my, 4 + beatPulse * 3);
+      circle(mx, my, 3.5 + beatPulse * 2);
+    } else {
+      // Aura de tinta grafito neutro
+      stroke(180, 180, 180, 120 + beatPulse * 60);
+      strokeWeight(1.2);
+      circle(mx, my, radius * 1.8);
+
+      stroke(180, 180, 180, 160 + beatPulse * 60);
+      strokeWeight(2.0);
+      circle(mx, my, radius * 1.2);
+
+      fill(255, 255, 255);
+      noStroke();
+      circle(mx, my, 4 + beatPulse * 2.5);
     }
     pop();
   }
 }
+
