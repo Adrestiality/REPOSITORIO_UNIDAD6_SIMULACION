@@ -2,19 +2,19 @@
  * ============================================================================
  * SIMULACIÓN POÉTICA 2D - UNIDAD 6 (UPB)
  * Creative Coding & Sistemas Emergentes
- * Coreografía Musical de 262 Beats · BTS Black Swan (Orchestral)
- * Coexistencia continua de Tinta Negra (Materia) y Luz Marfil (Espacio Limpio)
+ * Coreografía Visual & Línea de Tiempo · BTS Black Swan (Orchestral)
+ * Coexistencia Continua de Tinta Negra, Cisnes Blancos y Venas Borgoña
  * ============================================================================
  */
 
 // Buffers y Lienzos
 let inkBuffer;
 
-// Poblaciones Coexistentes de Alta Densidad (Equilibrio de Alto Rendimiento)
-let agents = [];         // 650 Partículas de Tinta Negra / Sangre
-let cleanerAgents = [];  // 280 Partículas de Luz Blanca / Borradores Marfil
+// Poblaciones Coexistentes
+let agents = [];         // Partículas de Tinta / Cisnes / Borgoña
+let cleanerAgents = [];  // Partículas de Luz / Limpiadores de Espacio Negativo
 
-// Motores de Fluido, Audio y Coreografía de 262 Beats
+// Motores de Fluido, Audio y Coreografía
 let fluidSystem = null;
 let audioEngine = null;
 let choreographyEngine = null;
@@ -44,9 +44,9 @@ function setup() {
   choreographyEngine = new ChoreographyEngine();
   simGUI = new SimulationGUI();
 
-  // Inicializar Poblaciones (650 Negras y 280 Blancas)
-  initAgents();
-  initCleanerAgents();
+  // Inicializar Poblaciones con conteos moderados
+  initAgents(75);
+  initCleanerAgents(25);
 
   noCursor();
 }
@@ -59,12 +59,15 @@ function draw() {
   const audioData = audioEngine ? audioEngine.update() : {};
   const currentSongTime = (audioEngine && audioEngine.audioElement) ? audioEngine.audioElement.currentTime : 0;
 
-  // 2. Actualizar Motor de Coreografía (262 Beats con Time-lapse orgánico)
+  // 2. Actualizar Motor de Coreografía de 12 Estados
   if (choreographyEngine) {
     choreographyEngine.update(currentSongTime);
   }
 
-  // 3. Actualizar HUD y Medidores
+  // 3. Ajuste dinámico y suave de poblaciones según el estado activo
+  syncPopulationCounts();
+
+  // 4. Actualizar HUD e Indicador de Escena
   updateChoreographyUI(audioData, currentSongTime);
 
   // --- FASE 1: SIMULACIÓN ACTIVA ---
@@ -74,7 +77,7 @@ function draw() {
     const currentCleanerParams = simGUI ? simGUI.params.cleaners : {};
     const currentFluidParams = simGUI ? simGUI.params.fluid : {};
 
-    // A. Interacción y Agitación del Cursor (Molestar y alterar partículas)
+    // A. Interacción y Agitación del Cursor
     fluidSystem.disturbSwarmWithCursor(
       [agents, cleanerAgents],
       mouseX,
@@ -112,26 +115,26 @@ function draw() {
     const bufW = inkBuffer.width;
     const bufH = inkBuffer.height;
 
-    // C. Actualizar Partículas de Tinta Negra (Pintan y trazan filamentos)
+    // C. Actualizar Partículas Principales (Tinta / Cisnes / Borgoña)
     for (let i = 0; i < agents.length; i++) {
       agents[i].update(pixelArray, bufW, bufH, inkBuffer, currentPhysParams, audioData, choreographyEngine);
     }
 
-    // D. Actualizar Partículas Blancas Limpiadoras (Borran con aerógrafos y pluma en beats)
+    // D. Actualizar Agentes Limpiadores de Espacio Negativo
     if (currentCleanerParams.enableCleaners) {
       for (let j = 0; j < cleanerAgents.length; j++) {
         cleanerAgents[j].update(pixelArray, bufW, bufH, inkBuffer, currentCleanerParams, audioData, choreographyEngine);
       }
     }
 
-    // E. Física de Fluidos: Difusión y Secado con tinte progresivo de fondo
+    // E. Física de Fluidos: Difusión y Secado continuo hacia el color de fondo
     fluidSystem.processFluidDynamics(inkBuffer, currentFluidParams, audioData, choreographyEngine);
   }
 
   // --- FASE 2: RENDERIZADO VISUAL ---
   image(inkBuffer, 0, 0, width, height);
 
-  // Renderizar la presencia luminosa de las partículas blancas
+  // Renderizar presencia luminosa de agentes limpiadores en modo cisnes
   if (simGUI && simGUI.params.cleaners.enableCleaners) {
     for (let j = 0; j < cleanerAgents.length; j++) {
       cleanerAgents[j].renderBody(audioData, choreographyEngine);
@@ -171,6 +174,46 @@ function formatTime(sec) {
 }
 
 /**
+ * Sincroniza suavemente el número de partículas hacia el objetivo del estado coreografiado
+ */
+function syncPopulationCounts() {
+  if (!choreographyEngine) return;
+
+  const targetAgents = choreographyEngine.currentParams.targetCount || 80;
+  const targetCleaners = choreographyEngine.currentParams.targetCleaners || 25;
+
+  // Ajuste suave de tinta (máximo 2 por frame para evitar tirones)
+  if (agents.length < targetAgents) {
+    const toAdd = Math.min(2, targetAgents - agents.length);
+    const cx = width / 2;
+    const cy = height / 2;
+    for (let i = 0; i < toAdd; i++) {
+      const r = random(5, min(width, height) * 0.20);
+      const theta = random(TWO_PI);
+      agents.push(new Agent(cx + Math.cos(theta) * r, cy + Math.sin(theta) * r, theta));
+    }
+  } else if (agents.length > targetAgents) {
+    const toRemove = Math.min(2, agents.length - targetAgents);
+    agents.splice(0, toRemove);
+  }
+
+  // Ajuste suave de limpiadores
+  if (cleanerAgents.length < targetCleaners) {
+    const toAdd = Math.min(1, targetCleaners - cleanerAgents.length);
+    const cx = width / 2;
+    const cy = height / 2;
+    for (let i = 0; i < toAdd; i++) {
+      const r = random(5, min(width, height) * 0.25);
+      const theta = random(TWO_PI);
+      cleanerAgents.push(new CleanerAgent(cx + Math.cos(theta) * r, cy + Math.sin(theta) * r, random(TWO_PI)));
+    }
+  } else if (cleanerAgents.length > targetCleaners) {
+    const toRemove = Math.min(1, cleanerAgents.length - targetCleaners);
+    cleanerAgents.splice(0, toRemove);
+  }
+}
+
+/**
  * Actualiza la información visual en el HUD y en la esquina inferior izquierda
  */
 function updateChoreographyUI(audioData, songTime) {
@@ -179,15 +222,15 @@ function updateChoreographyUI(audioData, songTime) {
   const info = choreographyEngine.getChoreographyInfo();
   const timeStr = formatTime(songTime);
 
-  // 1. Medidor de beat en HUD
+  // 1. Medidor en HUD
   const beatLabel = document.getElementById('beat-label');
   const meterFill = document.getElementById('meter-fill');
   const meterVal = document.getElementById('meter-val');
   const simState = document.getElementById('hud-sim-state');
 
-  if (beatLabel) beatLabel.innerText = `Beat: ${info.category}`;
-  if (meterFill) meterFill.style.width = `${info.weight}%`;
-  if (meterVal) meterVal.innerText = `${info.weight}%`;
+  if (beatLabel) beatLabel.innerText = `Estado: ${info.name} (${info.tag})`;
+  if (meterFill) meterFill.style.width = `${info.progress}%`;
+  if (meterVal) meterVal.innerText = `${info.progress}%`;
   if (simState) simState.innerText = `Tiempo: ${timeStr}`;
 
   // 2. Indicador en la esquina inferior izquierda
@@ -196,16 +239,12 @@ function updateChoreographyUI(audioData, songTime) {
   const descElem = document.getElementById('scene-desc');
   const indicator = document.getElementById('scene-indicator');
 
-  if (romanElem) romanElem.innerText = info.category.toUpperCase();
-  if (titleElem) titleElem.innerText = info.mode;
-  if (descElem) {
-    descElem.innerText = info.isBigBang
-      ? 'Orbe Gravitatorio Central en Vórtice & Fondo Vino Tinto'
-      : 'Mandalas Botánicas en Blanco & Rubor';
-  }
+  if (romanElem) romanElem.innerText = info.roman;
+  if (titleElem) titleElem.innerText = info.name;
+  if (descElem) descElem.innerText = info.description;
 
   if (indicator) {
-    indicator.className = `scene-indicator-container ${info.isBigBang ? 'act-3' : 'act-1'}`;
+    indicator.className = `scene-indicator-container ${info.isClimax ? 'act-3' : 'act-1'}`;
   }
 
   // 3. Sincronizar lectura con GUI
@@ -226,7 +265,7 @@ function startAudioPerformance() {
   if (audioEngine) {
     audioEngine.play().then((success) => {
       if (success && simGUI) {
-        simGUI.showToast('🎵 Coreografía de 262 Beats iniciada');
+        simGUI.showToast('🎵 Coreografía Visual de Black Swan iniciada');
       }
     });
   }
@@ -239,60 +278,38 @@ function mousePressed() {
 }
 
 /**
- * Inicialización de Poblaciones Multi-Nodo (Centro + Satélites Laterales)
+ * Inicialización de Poblaciones
  */
-function initAgents() {
-  const targetCount = simGUI ? simGUI.params.physarum.numAgents : 650;
-  const config = simGUI ? simGUI.params.physarum : {};
-
+function initAgents(initialCount = 75) {
   agents = [];
   const cx = width / 2;
   const cy = height / 2;
-  const nodes = choreographyEngine ? choreographyEngine.getAttractorNodes(cx, cy) : [{ id: 0, x: cx, y: cy }];
 
-  for (let i = 0; i < targetCount; i++) {
-    const nodeIdx = i % nodes.length;
-    const node = nodes[nodeIdx];
-    const r = random(5, min(width, height) * 0.20);
+  for (let i = 0; i < initialCount; i++) {
+    const r = random(5, min(width, height) * 0.18);
     const theta = random(TWO_PI);
-    const x = node.x + Math.cos(theta) * r;
-    const y = node.y + Math.sin(theta) * r;
-    const angle = theta + random(-0.4, 0.4);
-
-    const ag = new Agent(x, y, angle, config);
-    ag.targetNodeId = node.id;
-    agents.push(ag);
+    const x = cx + Math.cos(theta) * r;
+    const y = cy + Math.sin(theta) * r;
+    agents.push(new Agent(x, y, theta + random(-0.3, 0.3)));
   }
 }
 
-function initCleanerAgents() {
-  const targetCount = simGUI ? simGUI.params.cleaners.numCleaners : 280;
-  const config = simGUI ? simGUI.params.cleaners : {};
-
+function initCleanerAgents(initialCount = 25) {
   cleanerAgents = [];
   const cx = width / 2;
   const cy = height / 2;
-  const nodes = choreographyEngine ? choreographyEngine.getAttractorNodes(cx, cy) : [{ id: 0, x: cx, y: cy }];
 
-  for (let i = 0; i < targetCount; i++) {
-    const nodeIdx = i % nodes.length;
-    const node = nodes[nodeIdx];
-    const r = random(min(width, height) * 0.04, min(width, height) * 0.22);
+  for (let i = 0; i < initialCount; i++) {
+    const r = random(min(width, height) * 0.05, min(width, height) * 0.22);
     const theta = random(TWO_PI);
-    const x = node.x + Math.cos(theta) * r;
-    const y = node.y + Math.sin(theta) * r;
-    const angle = theta + Math.PI / 2 + random(-0.4, 0.4);
-
-    const cl = new CleanerAgent(x, y, angle, config);
-    cl.targetNodeId = node.id;
-    cleanerAgents.push(cl);
+    const x = cx + Math.cos(theta) * r;
+    const y = cy + Math.sin(theta) * r;
+    cleanerAgents.push(new CleanerAgent(x, y, random(TWO_PI)));
   }
 }
 
 function setAgentCount(newCount) {
   const currentCount = agents.length;
-  const config = simGUI ? simGUI.params.physarum : {};
-
   if (newCount > currentCount) {
     const toAdd = newCount - currentCount;
     const cx = width / 2;
@@ -300,7 +317,7 @@ function setAgentCount(newCount) {
     for (let i = 0; i < toAdd; i++) {
       const r = random(5, min(width, height) * 0.25);
       const theta = random(TWO_PI);
-      agents.push(new Agent(cx + Math.cos(theta) * r, cy + Math.sin(theta) * r, theta, config));
+      agents.push(new Agent(cx + Math.cos(theta) * r, cy + Math.sin(theta) * r, theta));
     }
   } else if (newCount < currentCount) {
     agents.length = newCount;
@@ -309,8 +326,6 @@ function setAgentCount(newCount) {
 
 function setCleanerCount(newCount) {
   const currentCount = cleanerAgents.length;
-  const config = simGUI ? simGUI.params.cleaners : {};
-
   if (newCount > currentCount) {
     const toAdd = newCount - currentCount;
     const cx = width / 2;
@@ -318,7 +333,7 @@ function setCleanerCount(newCount) {
     for (let i = 0; i < toAdd; i++) {
       const r = random(5, min(width, height) * 0.28);
       const theta = random(TWO_PI);
-      cleanerAgents.push(new CleanerAgent(cx + Math.cos(theta) * r, cy + Math.sin(theta) * r, random(TWO_PI), config));
+      cleanerAgents.push(new CleanerAgent(cx + Math.cos(theta) * r, cy + Math.sin(theta) * r, random(TWO_PI)));
     }
   } else if (newCount < currentCount) {
     cleanerAgents.length = newCount;
@@ -326,8 +341,10 @@ function setCleanerCount(newCount) {
 }
 
 function reseedAgentsPool() {
-  initAgents();
-  initCleanerAgents();
+  const targetA = choreographyEngine ? choreographyEngine.currentParams.targetCount : 75;
+  const targetC = choreographyEngine ? choreographyEngine.currentParams.targetCleaners : 25;
+  initAgents(targetA);
+  initCleanerAgents(targetC);
 }
 
 function resetInkBuffer() {
@@ -369,11 +386,35 @@ function windowResized() {
 }
 
 /**
- * Control de Teclado
+ * Control de Teclado: Atajos directos a los 12 Estados
  */
 function keyPressed() {
   if (audioEngine && !audioEngine.isPlaying && !audioEngine.hasUserInteracted) {
     startAudioPerformance();
+  }
+
+  // Atajos a los 12 estados de la coreografía
+  const keyMap = {
+    '1': 0, // 0:00 INK BIRTH
+    '2': 1, // 0:18 INK IN WATER
+    '3': 2, // 0:38 SWAN FLOCK
+    '4': 3, // 0:58 FEATHERS
+    '5': 4, // 1:18 CONTAMINATION
+    '6': 5, // 1:38 CONVERGENCE
+    '7': 6, // 2:03 BLACK HOLE
+    '8': 7, // 2:14 FRAGMENTATION
+    '9': 8, // 2:30 BURGUNDY VEINS
+    '0': 9, // 2:40 BLACK HOLE EXPLOSION
+    '-': 10, // 2:55 COLLAPSE
+    '=': 11  // 3:08 FINAL BREATH
+  };
+
+  if (key in keyMap) {
+    const stateIdx = keyMap[key];
+    if (choreographyEngine && simGUI) {
+      simGUI.seekToTimelineState(stateIdx);
+    }
+    return false;
   }
 
   if (key === 'f' || key === 'F') {

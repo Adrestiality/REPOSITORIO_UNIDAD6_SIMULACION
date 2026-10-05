@@ -2,10 +2,10 @@
  * ============================================================================
  * CLASE CLEANERAGENT - AGENTES LIMPIADORES / BORRADORES DE LUZ (UNIDAD 6 - UPB)
  * ============================================================================
- * Partículas de luz blanca pura y aerógrafos ultra-suaves difuminados:
- *  - 0 puntos duros ni círculos nítidos (difuminado orgánico tipo aerógrafo / niebla).
- *  - Beats bajos = Brisa perlada suave y serena que limpia canales armónicos.
- *  - Beats altos = Ondas etéreas difuminadas, polvo de luz y halos cósmicos fluidos.
+ * Agentes difuminadores y limpiadores de espacio negativo:
+ *  - Disuelven suavemente la acumulación excesiva de tinta mediante aerógrafos.
+ *  - Garantizan que el lienzo conserve amplias zonas de espacio negativo.
+ *  - Trazos 100% difuminados sin círculos duros ni bordes artificiales.
  * ============================================================================
  */
 
@@ -16,18 +16,17 @@ class CleanerAgent {
     this.angle = angle !== null ? angle : random(TWO_PI);
 
     // Cinemática ágil y fluida
-    this.baseSpeed = config.cleanerSpeed || 4.8;
+    this.baseSpeed = config.cleanerSpeed || 3.2;
     this.speed = this.baseSpeed;
     this.sensorDist = config.cleanerSensorDist || 18;
     this.sensorAngle = radians(36);
-    this.turnSpeed = radians(40);
+    this.turnSpeed = radians(38);
 
     // Dimensiones de aerógrafo suave
-    this.baseRadius = config.cleanerRadius || 8.5;
-    this.baseAlpha = config.cleanerStrength || 55;
+    this.baseRadius = config.cleanerRadius || 7.0;
+    this.baseAlpha = config.cleanerStrength || 45;
 
-    this.seedOffset = random(3000, 6000);
-    this.targetNodeId = Math.random() < 0.35 ? 1 : (Math.random() < 0.5 ? 2 : 0);
+    this.seedOffset = Math.floor(random(3000, 9000));
     this.prevX = this.x;
     this.prevY = this.y;
 
@@ -38,35 +37,28 @@ class CleanerAgent {
   }
 
   update(pixelArray, bufWidth, bufHeight, buffer, currentParams = {}, audioData = {}, choreography = null) {
-    if (currentParams.cleanerSpeed) this.baseSpeed = currentParams.cleanerSpeed;
+    const choreoParams = choreography ? choreography.currentParams : {};
+
+    if (choreoParams.speed !== undefined) {
+      this.speed = choreoParams.speed * 1.15;
+    } else if (currentParams.cleanerSpeed) {
+      this.speed = currentParams.cleanerSpeed;
+    }
+
     if (currentParams.cleanerRadius) this.baseRadius = currentParams.cleanerRadius;
     if (currentParams.cleanerStrength) this.baseAlpha = currentParams.cleanerStrength;
-
-    const bass = audioData.bass || 0;
-    const energy = audioData.energy || 0;
-    const beatPulse = audioData.beatPulse || 0;
-    const intensityWeight = choreography ? choreography.intensityWeight : 0.2;
-    const isClimax = choreography ? (choreography.isBlackHole || choreography.isSupernova || intensityWeight > 0.55) : false;
-    const beatPulseInstant = choreography ? choreography.beatPulseInstant : 0;
 
     this.prevX = this.x;
     this.prevY = this.y;
 
-    // --- ESCALA DE VELOCIDADES ---
-    if (!isClimax) {
-      this.speed = this.baseSpeed * (0.90 + intensityWeight * 0.65 + beatPulse * 0.40);
-    } else {
-      this.speed = this.baseSpeed * (1.5 + intensityWeight * 2.4 + beatPulse * 1.3 + beatPulseInstant * 1.1);
-    }
-
-    // --- 1. SEDUCCIÓN TEMPORAL POR EL MOUSE ---
+    // 1. Seducción por interacción del mouse
     if (this.mouseSeducedTimer > 0) {
       this.mouseSeducedTimer--;
       const angleToMouse = Math.atan2(this.mouseTargetY - this.y, this.mouseTargetX - this.x);
       const angleDiff = Math.atan2(Math.sin(angleToMouse - this.angle), Math.cos(angleToMouse - this.angle));
       this.angle += angleDiff * 0.22 + (random() - 0.5) * 0.10;
     } else {
-      // --- 2. SENSADO DE TINTA ---
+      // 2. Sensado Physarum de Tinta
       const trailF = this.sense(pixelArray, bufWidth, bufHeight, 0);
       const trailL = this.sense(pixelArray, bufWidth, bufHeight, -this.sensorAngle);
       const trailR = this.sense(pixelArray, bufWidth, bufHeight, this.sensorAngle);
@@ -76,30 +68,30 @@ class CleanerAgent {
       if (trailF > trailL && trailF > trailR && trailF > THRESHOLD) {
         this.angle += (random() - 0.5) * 0.04;
       } else if (trailL > trailR && trailL > THRESHOLD) {
-        this.angle -= this.turnSpeed * (1.0 + beatPulse * 0.35);
+        this.angle -= this.turnSpeed;
       } else if (trailR > trailL && trailR > THRESHOLD) {
-        this.angle += this.turnSpeed * (1.0 + beatPulse * 0.35);
+        this.angle += this.turnSpeed;
       } else if (trailL > THRESHOLD && trailL === trailR) {
         this.angle += (random() < 0.5 ? -1 : 1) * this.turnSpeed;
       } else {
         const noiseVal = noise(
           this.x * 0.003 + this.seedOffset,
           this.y * 0.003 + this.seedOffset,
-          frameCount * 0.004
+          frameCount * 0.003
         );
         const flowAngle = noiseVal * TWO_PI * 2.0;
         const angleDiff = Math.atan2(Math.sin(flowAngle - this.angle), Math.cos(flowAngle - this.angle));
-        this.angle += angleDiff * 0.09 + (random() - 0.5) * 0.12;
+        this.angle += angleDiff * 0.08 + (random() - 0.5) * 0.10;
       }
 
-      // --- 3. FUERZAS COREOGRÁFICAS ---
+      // 3. Fuerzas coreográficas
       if (choreography) {
         choreography.applyChoreographyForces(this, true, bufWidth / 2, bufHeight / 2, audioData);
       }
     }
 
-    // --- 4. AVANCE CINEMÁTICO ---
-    const steps = Math.max(1, Math.ceil(this.speed / 4.0));
+    // 4. Avance cinemático multi-paso
+    const steps = Math.max(1, Math.ceil(this.speed / 3.0));
     const stepDist = this.speed / steps;
 
     for (let s = 0; s < steps; s++) {
@@ -111,7 +103,7 @@ class CleanerAgent {
       if (this.y < 0) { this.y += bufHeight; this.prevY = this.y; }
       if (this.y >= bufHeight) { this.y -= bufHeight; this.prevY = this.y; }
 
-      this.erase(buffer, choreography, bass, energy, beatPulse, 1.0 / steps);
+      this.erase(buffer, choreography, 1.0 / steps);
     }
   }
 
@@ -131,86 +123,45 @@ class CleanerAgent {
   }
 
   /**
-   * Borrado en aerógrafo ultra-suave y plumaje difuminado (sin círculos duros)
+   * Borrado / difuminado limpio con el color de fondo actual (sin halos gigantes)
    */
-  erase(buffer, choreography, bass = 0, energy = 0, beatPulse = 0, stepWeight = 1.0) {
-    buffer.noStroke();
-
-    const intensity = choreography ? choreography.intensityWeight : 0.2;
-    const isClimax = choreography ? (choreography.isBlackHole || choreography.isSupernova || intensity > 0.55) : false;
+  erase(buffer, choreography, stepWeight = 1.0) {
+    const choreoParams = choreography ? choreography.currentParams : {};
     const bg = choreography ? choreography.currentBg : { r: 245, g: 245, b: 245 };
+    const radius = Math.max(2.5, (choreoParams.depositRadius || this.baseRadius) * 1.4);
+    const alpha = Math.min(100, (this.baseAlpha * 0.80) * stepWeight);
 
-    if (!isClimax) {
-      // === BEATS BAJOS / PAZ: AERÓGRAFO SUAVE Y SERENO DE LUZ MARFIL ===
-      const radius = this.baseRadius * (1.1 + intensity * 0.5 + beatPulse * 0.3);
-      const alphaBase = Math.min(80, (this.baseAlpha * 0.75 + beatPulse * 20) * stepWeight);
-
-      // Difuminado multicapa tipo aerógrafo (suavidad concéntrica sin bordes duros)
-      buffer.fill(bg.r, bg.g, bg.b, alphaBase * 0.20);
-      buffer.circle(this.x, this.y, radius * 2.4);
-
-      buffer.fill(bg.r, bg.g, bg.b, alphaBase * 0.45);
-      buffer.circle(this.x, this.y, radius * 1.5);
-
-      buffer.fill(255, 255, 255, alphaBase * 0.65);
-      buffer.circle(this.x, this.y, radius * 0.8);
-    } else {
-      // === BEATS ALTOS / CLÍMAX: NIEBLA Y POLVO DE LUZ ULTRA-DIFUMINADO ===
-      const radius = this.baseRadius * (2.2 + intensity * 2.8 + beatPulse * 2.0);
-      const softAlpha = Math.min(65, (this.baseAlpha * 0.40 + beatPulse * 25) * stepWeight);
-
-      buffer.fill(bg.r, bg.g, bg.b, softAlpha * 0.18);
-      buffer.circle(this.x, this.y, radius * 2.8);
-
-      buffer.fill(bg.r, bg.g, bg.b, softAlpha * 0.38);
-      buffer.circle(this.x, this.y, radius * 1.8);
-
-      buffer.fill(255, 255, 255, softAlpha * 0.55);
-      buffer.circle(this.x, this.y, radius * 1.0);
-
-      buffer.fill(255, 255, 255, softAlpha * 0.80);
-      buffer.circle(this.x, this.y, radius * 0.45);
+    // Trazo de borrado continuo conectado
+    const dist = Math.hypot(this.x - this.prevX, this.y - this.prevY);
+    if (dist > 0.1 && dist < 80) {
+      buffer.stroke(bg.r, bg.g, bg.b, alpha * 0.65);
+      buffer.strokeWeight(radius * 1.5);
+      buffer.line(this.prevX, this.prevY, this.x, this.y);
     }
+
+    buffer.noStroke();
+    buffer.fill(bg.r, bg.g, bg.b, alpha * 0.80);
+    buffer.circle(this.x, this.y, radius * 1.5);
   }
 
   /**
-   * Renderiza el aura y presencia luminosa en aerógrafo ultra-suave
-   * (Totalmente libre de círculos duros o líneas artificiales)
+   * Renderiza el aura luminosa etérea (sin círculos duros)
    */
   renderBody(audioData = {}, choreography = null) {
-    const beatPulse = audioData.beatPulse || 0;
-    const intensity = choreography ? choreography.intensityWeight : 0.2;
-    const isClimax = choreography ? (choreography.isBlackHole || choreography.isSupernova || intensity > 0.55) : false;
+    const choreoParams = choreography ? choreography.currentParams : {};
+    const theme = choreoParams.theme || 'light';
 
-    push();
-    noStroke();
-
-    if (!isClimax) {
-      // Halo de luz etérea y suave (difuminado concéntrico sin borde duro)
-      const glowR = (this.baseRadius * 1.4) * (1.0 + beatPulse * 0.4);
-      
-      fill(255, 255, 255, 12 + beatPulse * 18);
-      circle(this.x, this.y, glowR * 2.2);
-
-      fill(255, 255, 255, 28 + beatPulse * 25);
-      circle(this.x, this.y, glowR * 1.3);
-
-      fill(255, 255, 255, 60 + beatPulse * 40);
-      circle(this.x, this.y, glowR * 0.6);
-    } else {
-      // Bruma cósmica resplandeciente en clímax
-      const glowR = (this.baseRadius * 2.2) * (1.0 + beatPulse * 0.6);
-
-      fill(255, 255, 255, 15 + intensity * 20);
-      circle(this.x, this.y, glowR * 2.6);
-
-      fill(255, 255, 255, 35 + intensity * 35);
-      circle(this.x, this.y, glowR * 1.5);
-
-      fill(255, 255, 255, 75 + intensity * 45);
-      circle(this.x, this.y, glowR * 0.7);
+    if (theme === 'dark_swan') {
+      // En modo cisnes blancos: aura perlada suave
+      push();
+      noStroke();
+      fill(255, 255, 255, 12);
+      circle(this.x, this.y, 22.0);
+      fill(255, 255, 255, 30);
+      circle(this.x, this.y, 11.0);
+      fill(255, 255, 255, 70);
+      circle(this.x, this.y, 4.5);
+      pop();
     }
-    pop();
   }
 }
-

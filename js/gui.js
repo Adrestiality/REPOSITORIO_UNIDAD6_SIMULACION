@@ -16,13 +16,13 @@ class SimulationGUI {
       currentBeatCategory: 'SÚPER BAJO',
       currentChoreography: 'MANDALAS BOTÁNICAS',
       songTime: '0:00',
-      
+
       // Saltos Rápidos de Coreografía
       jumpIntro: () => this.seekSong(0),
-      jumpFirstTension: () => this.seekSong(61.8),
-      jumpBlackHole: () => this.seekSong(123.2),
-      jumpSupernova: () => this.seekSong(162.4),
-      jumpOutro: () => this.seekSong(183.0),
+      jumpFirstTension: () => this.seekSong(58.0),
+      jumpBlackHole: () => this.seekSong(123.0),
+      jumpSupernova: () => this.seekSong(162.0),
+      jumpOutro: () => this.seekSong(188.0),
 
       // Control de Simulación
       isPaused: false,
@@ -109,7 +109,7 @@ class SimulationGUI {
     audioFolder.add(this.params, 'audioPlay').name('▶ Reproducir Audio');
     audioFolder.add(this.params, 'audioPause').name('⏸ Pausar Audio');
     audioFolder.add(this.params, 'audioRestart').name('⏮ Reiniciar');
-    
+
     this.controllers.volume = audioFolder.add(this.params, 'volume', 0.0, 1.0, 0.01)
       .name('Volumen')
       .onChange((val) => {
@@ -202,6 +202,13 @@ class SimulationGUI {
         audioEngine.play();
       }
       this.showToast(`Saltando a: ${Math.floor(seconds / 60)}:${Math.floor(seconds % 60).toString().padStart(2, '0')}`);
+    }
+  }
+
+  seekToTimelineState(stateIdx) {
+    if (typeof choreographyEngine !== 'undefined' && choreographyEngine) {
+      const targetTime = choreographyEngine.jumpToState(stateIdx);
+      this.seekSong(targetTime);
     }
   }
 
@@ -319,3 +326,4 @@ class SimulationGUI {
 }
 
 let simGUI = null;
+
