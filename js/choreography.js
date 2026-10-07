@@ -45,6 +45,11 @@ class BlackHoleController {
     this.phaseProgress = 0.0;
     this.suctionForce = 1.0;
     this.currentSpinSpeed = 1.0;
+    this.shockwave = 0.0;
+    this.lastImpactTime = 0.0;
+    this.timeSinceImpact = 0.0;
+    this.impactKeyframes = [162.4, 165.7, 168.9, 172.2];
+    this.cycleIndex = 0;
   }
 
   reset() {
@@ -55,95 +60,131 @@ class BlackHoleController {
     this.phaseProgress = 0.0;
     this.suctionForce = 1.0;
     this.currentSpinSpeed = 1.0;
+    this.shockwave = 0.0;
+    this.lastImpactTime = 0.0;
+    this.timeSinceImpact = 0.0;
+    this.cycleIndex = 0;
   }
 
   /**
-   * Actualiza el ciclo de respiración y radios según la frase musical
-   * @param {number} tRel - Segundos transcurridos desde el inicio del clímax (0.0s a ~11.0s)
+   * Actualiza el ciclo de respiración y sincronización de impactos con la música (2:42)
+   * @param {number} currentTime - Tiempo actual de la canción en segundos
    * @param {number} canvasMinDim - Dimensión mínima del viewport para escalado
    */
-  update(tRel, canvasMinDim = 800) {
+  update(currentTime, canvasMinDim = 800) {
     const scale = Math.min(1.35, Math.max(0.75, canvasMinDim / 850));
 
-    // Secuencia de 3 Ciclos de Respiración Musical:
-    // Ciclo 1 (0.0s - 3.7s): Gran radio (~225px) -> Contracción rápida (~75px) -> Pausa breve (~0.5s) -> Expansión lenta (~185px)
-    // Ciclo 2 (3.7s - 7.3s): Gran radio (~185px) -> Contracción más profunda (~45px) -> Pausa breve (~0.4s) -> Expansión lenta (~155px)
-    // Ciclo 3 (7.3s - 11.0s): Gran radio (~155px) -> Contracción extrema / singularidad (~26px) con giro súper-acelerado
+    // Detectar impactos clave sincronizados de la percusión orquestal
+    for (let i = 0; i < this.impactKeyframes.length; i++) {
+      const tKey = this.impactKeyframes[i];
+      if (currentTime >= tKey && currentTime <= tKey + 0.35 && this.lastImpactTime < tKey) {
+        this.shockwave = 2.8 + i * 0.4; // Contracción súbita e impacto violento
+        this.lastImpactTime = tKey;
+        this.cycleIndex = i + 1;
+      }
+    }
 
-    if (tRel < 3.7) {
+    let activeKey = 160.0;
+    for (let i = 0; i < this.impactKeyframes.length; i++) {
+      if (currentTime >= this.impactKeyframes[i]) {
+        activeKey = this.impactKeyframes[i];
+        this.cycleIndex = i + 1;
+      }
+    }
+
+    this.timeSinceImpact = Math.max(0, currentTime - activeKey);
+
+    // --- 1. PRE-IMPACTO (160.0s a 162.4s): Tensión creciente y contracción anticipatoria ---
+    if (this.lastImpactTime < 162.4 && currentTime >= 160.0 && currentTime < 162.4) {
+      const tensionP = (currentTime - 160.0) / 2.4; // 0.0 a 1.0
+      const tensionEase = Math.pow(tensionP, 1.8);
+      // Reducción progresiva del radio orbital e incremento notable de succión/tensión
+      this.blackHoleRadius = (230 - (230 - 110) * tensionEase) * scale;
+      this.isContracting = true;
+      this.suctionForce = 1.2 + tensionEase * 2.5;
+      this.currentSpinSpeed = 1.1 + tensionEase * 1.6;
+      this.innerVoidRadius = Math.max(18 * scale, this.blackHoleRadius * 0.54);
+      return;
+    }
+
+    // --- 2. CICLOS DE RESPIRACIÓN Y GOLPES DE CLÍMAX TRAS 162.4s ---
+    if (this.cycleIndex <= 1) {
+      // Ciclo 1 (162.4s - 165.7s): IMPACTO PRINCIPAL A 2:42.4
       this.contractionPhase = 0;
-      const u = Math.max(0, Math.min(1.0, tRel / 3.7));
+      const u = Math.max(0, Math.min(1.0, this.timeSinceImpact / 3.3));
       this.phaseProgress = u;
 
-      if (u < 0.42) {
-        // Contracción rápida: partículas caen hacia adentro
-        const p = u / 0.42;
-        const ease = p * p; // Aceleración cuadrática hacia el centro
-        this.blackHoleRadius = (225 - (225 - 75) * ease) * scale;
+      if (u < 0.24) {
+        // Contracción súbita violenta en el golpe exacto
+        const p = u / 0.24;
+        const snapEase = Math.pow(p, 0.7);
+        this.blackHoleRadius = (110 - (110 - 52) * snapEase) * scale;
         this.isContracting = true;
-        this.suctionForce = 1.0 + ease * 1.6;
-        this.currentSpinSpeed = 1.0 + ease * 1.2;
-      } else if (u < 0.58) {
-        // Pausa breve en radio mínimo
-        this.blackHoleRadius = 75 * scale;
-        this.isContracting = false;
-        this.suctionForce = 0.8;
-        this.currentSpinSpeed = 1.5;
-      } else {
-        // Expansión lenta y orgánica hacia afuera
-        const p = (u - 0.58) / 0.42;
-        const ease = Math.sin(p * Math.PI * 0.5); // Desaceleración suave
-        this.blackHoleRadius = (75 + (185 - 75) * ease) * scale;
+        this.suctionForce = 3.2 + (1.0 - p) * 3.5;
+        this.currentSpinSpeed = 2.4 + (1.0 - p) * 2.2;
+      } else if (u < 0.70) {
+        // Liberación explosiva / expansión inmediata tras el impacto
+        const p = (u - 0.24) / 0.46;
+        const expandEase = Math.sin(p * Math.PI * 0.5);
+        this.blackHoleRadius = (52 + (195 - 52) * expandEase) * scale;
         this.isContracting = false;
         this.suctionForce = 0.5;
-        this.currentSpinSpeed = 1.2 - ease * 0.3;
+        this.currentSpinSpeed = 1.3 - expandEase * 0.35;
+      } else {
+        // Re-contracción gravitatoria suave
+        const p = (u - 0.70) / 0.30;
+        const ease = p * p;
+        this.blackHoleRadius = (195 - (195 - 150) * ease) * scale;
+        this.isContracting = true;
+        this.suctionForce = 0.9 + ease * 0.6;
+        this.currentSpinSpeed = 1.1 + ease * 0.4;
       }
 
-    } else if (tRel < 7.3) {
+    } else if (this.cycleIndex === 2) {
+      // Ciclo 2 (165.7s - 168.9s): Segundo golpe de percusión
       this.contractionPhase = 1;
-      const u = Math.max(0, Math.min(1.0, (tRel - 3.7) / 3.6));
+      const u = Math.max(0, Math.min(1.0, this.timeSinceImpact / 3.2));
       this.phaseProgress = u;
 
-      if (u < 0.44) {
-        // Contracción más intensa y rápida
-        const p = u / 0.44;
-        const ease = Math.pow(p, 2.2);
-        this.blackHoleRadius = (185 - (185 - 45) * ease) * scale;
+      if (u < 0.30) {
+        const p = u / 0.30;
+        const snapEase = Math.pow(p, 0.8);
+        this.blackHoleRadius = (150 - (150 - 44) * snapEase) * scale;
         this.isContracting = true;
-        this.suctionForce = 1.4 + ease * 2.2;
-        this.currentSpinSpeed = 1.3 + ease * 1.6;
-      } else if (u < 0.56) {
-        // Pausa breve
-        this.blackHoleRadius = 45 * scale;
-        this.isContracting = false;
-        this.suctionForce = 1.0;
-        this.currentSpinSpeed = 1.9;
-      } else {
-        // Expansión lenta
-        const p = (u - 0.56) / 0.44;
-        const ease = Math.sin(p * Math.PI * 0.5);
-        this.blackHoleRadius = (45 + (155 - 45) * ease) * scale;
+        this.suctionForce = 2.6 + (1.0 - p) * 2.2;
+        this.currentSpinSpeed = 2.0 + (1.0 - p) * 1.5;
+      } else if (u < 0.75) {
+        const p = (u - 0.30) / 0.45;
+        const expandEase = Math.sin(p * Math.PI * 0.5);
+        this.blackHoleRadius = (44 + (165 - 44) * expandEase) * scale;
         this.isContracting = false;
         this.suctionForce = 0.6;
-        this.currentSpinSpeed = 1.2 - ease * 0.2;
+        this.currentSpinSpeed = 1.2 - expandEase * 0.25;
+      } else {
+        const p = (u - 0.75) / 0.25;
+        this.blackHoleRadius = (165 - (165 - 135) * p) * scale;
+        this.isContracting = true;
+        this.suctionForce = 1.2;
+        this.currentSpinSpeed = 1.3;
       }
 
     } else {
+      // Ciclo 3 (168.9s - 175.5s): Tercer impacto y colapso extremo a singularidad
       this.contractionPhase = 2;
-      const u = Math.max(0, Math.min(1.0, (tRel - 7.3) / 3.7));
+      const u = Math.max(0, Math.min(1.0, this.timeSinceImpact / 3.3));
       this.phaseProgress = u;
 
-      // Contracción extrema a singularidad de tinta viva
-      const ease = Math.pow(u, 1.8);
-      this.blackHoleRadius = (155 - (155 - 28) * ease) * scale;
+      const ease = Math.pow(u, 1.6);
+      this.blackHoleRadius = (135 - (135 - 28) * ease) * scale;
       this.isContracting = true;
-      this.suctionForce = 2.0 + ease * 3.5;
-      this.currentSpinSpeed = 1.6 + ease * 2.4;
+      this.suctionForce = 2.2 + ease * 3.8;
+      this.currentSpinSpeed = 1.8 + ease * 2.5;
     }
 
-    // Vacío central protegido: proporcional al radio dinámico (~56% del radio del anillo)
+    // Vacío central protegido: proporcional al radio dinámico (~54% del radio del anillo)
     // Garantiza que el centro esté SIEMPRE visiblemente vacío
-    this.innerVoidRadius = Math.max(16 * scale, this.blackHoleRadius * 0.56);
+    this.innerVoidRadius = Math.max(16 * scale, this.blackHoleRadius * 0.54);
+    this.shockwave *= 0.88;
   }
 
   /**
@@ -216,31 +257,32 @@ class BlackHoleController {
     // 5. DISTINCIÓN CINEMÁTICA: CONTRACCIÓN vs EXPANSIÓN
     const radialDiff = distCenter - organicRingRadius;
     const spinDir = isCleaner ? -1 : 1;
+    const shockImpulse = this.shockwave * 3.6;
 
     if (this.isContracting) {
       // --- CONTRACCIÓN = Las partículas caen activamente hacia adentro hacia el anillo ---
-      const pullSpeed = Math.min(9.5, Math.max(0.6, radialDiff * 0.08 * this.suctionForce + 1.8));
+      const pullSpeed = Math.min(14.0, Math.max(0.6, radialDiff * 0.09 * this.suctionForce + 1.8 + shockImpulse));
       agent.x -= Math.cos(angleCenter) * pullSpeed;
       agent.y -= Math.sin(angleCenter) * pullSpeed;
 
       // Espiral cerrada relativista de alta velocidad tangencial
       const spiralInward = angleCenter + spinDir * (Math.PI / 2.0) - spinDir * (layerSpiralTightness + 0.12 * this.contractionPhase);
       const angleDiff = Math.atan2(Math.sin(spiralInward - agent.angle), Math.cos(spiralInward - agent.angle));
-      agent.angle += angleDiff * (0.35 * this.currentSpinSpeed * layerSpeedMult);
+      agent.angle += angleDiff * (0.36 * this.currentSpinSpeed * layerSpeedMult);
 
       // Micro-turbulencia de tinta
       agent.angle += (noise(agent.x * 0.01, agent.y * 0.01, frameCount * 0.01) - 0.5) * 0.16;
 
     } else {
       // --- EXPANSIÓN = Las partículas orbitan hacia afuera con arrastre centrífugo ---
-      const pushSpeed = Math.min(6.5, Math.max(-1.5, (organicRingRadius - distCenter) * 0.07 + 1.2));
+      const pushSpeed = Math.min(8.5, Math.max(-1.5, (organicRingRadius - distCenter) * 0.08 + 1.3 + shockImpulse * 0.4));
       agent.x += Math.cos(angleCenter) * pushSpeed;
       agent.y += Math.sin(angleCenter) * pushSpeed;
 
       // Espiral abierta y centrífuga
-      const openCentrifugal = angleCenter + spinDir * (Math.PI / 2.0) + spinDir * (0.20 * layerSpeedMult);
+      const openCentrifugal = angleCenter + spinDir * (Math.PI / 2.0) + spinDir * (0.22 * layerSpeedMult);
       const angleDiff = Math.atan2(Math.sin(openCentrifugal - agent.angle), Math.cos(openCentrifugal - agent.angle));
-      agent.angle += angleDiff * (0.30 * this.currentSpinSpeed * layerSpeedMult);
+      agent.angle += angleDiff * (0.32 * this.currentSpinSpeed * layerSpeedMult);
 
       // Ondulación de humo en expansión
       agent.angle += (noise(agent.x * 0.008, agent.y * 0.008, frameCount * 0.005) - 0.5) * 0.12;
@@ -253,14 +295,15 @@ class BlackHoleController {
       innerVoidRadius: this.innerVoidRadius,
       isContracting: this.isContracting,
       phase: this.contractionPhase,
-      progress: this.phaseProgress
+      progress: this.phaseProgress,
+      shockwave: this.shockwave
     };
   }
 }
 
 /**
  * ============================================================================
- * CONTROLADOR DEDICADO Y REUTILIZABLE: BLACK_HOLE_EXPLOSION (2:42)
+ * CONTROLADOR DEDICADO Y REUTILIZABLE: BLACK_HOLE_EXPLOSION (2:03)
  * ============================================================================
  * Dinámica:
  *  EXPLOSIÓN IRREGULAR → DISPERSIÓN → REBOTE GRAVITATORIO → REFORMACIÓN DE VACÍO
@@ -269,6 +312,7 @@ class BlackHoleController {
  *  - Empieza con el vacío central rodeado de partículas.
  *  - Estallido irregular y heterogéneo: cada partícula recibe un impulso único
  *    (algunas viajan lejos, otras poco, algunas quedan atrapadas, formando estelas curvadas).
+ *  - Contención dentro del lienzo: radio máximo individual entre 7 y 9 (sin tocar bordes).
  *  - Rebote gravitatorio: las partículas son atraídas de vuelta para reformar el vacío.
  *  - Repetición de impactos con inestabilidad creciente.
  *  - El ciclo final falla en reformar el agujero negro, dejando dispersión en calma.
@@ -279,7 +323,7 @@ class BlackHoleExplosionController {
     this.lastImpactTime = 0.0;
     this.cycleIndex = 0;
     this.timeSinceImpact = 0.0;
-    this.impactKeyframes = [162.4, 165.7, 168.9, 172.2];
+    this.impactKeyframes = [123.2, 126.8, 130.4];
     this.isBlastActive = false;
   }
 
@@ -296,11 +340,11 @@ class BlackHoleExplosionController {
   }
 
   /**
-   * Actualiza el estado cíclico de explosiones e impactos
+   * Actualiza el estado cíclico de explosiones e impactos (2:03)
    * @param {number} currentTime - Tiempo actual de la canción en segundos
    */
   update(currentTime) {
-    // Detectar impactos clave de la percusión orquestal
+    // Detectar impactos clave de la percusión orquestal en 2:03
     for (let i = 0; i < this.impactKeyframes.length; i++) {
       const tKey = this.impactKeyframes[i];
       if (currentTime >= tKey && currentTime <= tKey + 0.35 && this.lastImpactTime < tKey) {
@@ -311,7 +355,7 @@ class BlackHoleExplosionController {
     }
 
     // Calcular ciclo activo y tiempo transcurrido desde el último golpe
-    let activeKey = 160.0;
+    let activeKey = 121.5;
     for (let i = 0; i < this.impactKeyframes.length; i++) {
       if (currentTime >= this.impactKeyframes[i]) {
         activeKey = this.impactKeyframes[i];
@@ -320,7 +364,7 @@ class BlackHoleExplosionController {
     }
 
     this.timeSinceImpact = Math.max(0, currentTime - activeKey);
-    this.isBlastActive = (currentTime >= 162.4 && this.timeSinceImpact < 1.15);
+    this.isBlastActive = (currentTime >= 123.2 && this.timeSinceImpact < 1.15);
 
     // Decaimiento del pulso de choque
     this.shockwave *= 0.88;
@@ -335,8 +379,8 @@ class BlackHoleExplosionController {
     const distCenter = Math.sqrt(dx * dx + dy * dy) + 0.001;
     const angleCenter = Math.atan2(dy, dx);
 
-    // 1. PRE-IMPACTO (160.0 a 162.4s): Formación del vacío pre-explosión
-    if (this.lastImpactTime < 162.4) {
+    // 1. PRE-IMPACTO (121.5 a 123.2s): Formación del vacío pre-explosión
+    if (this.lastImpactTime < 123.2) {
       const preVoid = Math.min(width, height) * 0.12;
       const rDiff = distCenter - preVoid;
       agent.x -= Math.cos(angleCenter) * rDiff * 0.09;
@@ -348,42 +392,45 @@ class BlackHoleExplosionController {
     }
 
     // 2. FASES DEL CICLO MUSICAL:
-    // FASE A: EXPLOSIÓN & DISPERSIÓN IRREGULAR (0.0s a ~1.15s tras cada impacto)
+    // FASE A: EXPLOSIÓN & DISPERSIÓN IRREGULAR CONTENIDA (0.0s a ~1.15s tras cada impacto)
     // FASE B: ATRACCIÓN GRAVITATORIA & REFORMACIÓN DEL VACÍO (1.15s hasta el siguiente impacto)
 
     const seedVal = (agent.seedOffset % 1000) / 1000.0;
+    const minCanvas = Math.min(width, height);
+    const maxCanvasRadius = minCanvas * 0.48; // Escala 10 = borde de pantalla
+
+    // Radio máximo individual aleatorizado para cada partícula entre 7 y 9 (0.70 a 0.88)
+    const targetMaxRadius = maxCanvasRadius * (0.70 + 0.18 * seedVal + ((agent.seedOffset % 79) / 79.0 - 0.5) * 0.08);
 
     if (this.isBlastActive) {
-      // --- ESTALLIDO IRREGULAR Y HETEROGÉNEO (NO es una onda circular uniforme) ---
+      // --- ESTALLIDO IRREGULAR Y HETEROGÉNEO SIN CHOQUE CON BORDES ---
       const blastT = this.timeSinceImpact / 1.15;
       const blastDecay = Math.max(0, 1.0 - blastT * blastT);
 
-      // Multiplicador de alcance heterogéneo:
-      // - Unas viajan muy lejos (seedVal alto -> alcance 2.5x)
-      // - Unas viajan distancia media o corta
-      // - Unas quedan atrapadas temporalmente cerca del centro (seedVal bajo)
-      const reachMultiplier = 0.25 + 2.3 * Math.pow(seedVal, 1.6);
+      // Multiplicador de alcance heterogéneo
+      const reachMultiplier = 0.30 + 1.8 * Math.pow(seedVal, 1.4);
 
       // Desviación angular y asimetría de chorro de tinta
       const angleDeviation = (noise(agent.seedOffset * 0.1, frameCount * 0.015) - 0.5) * 1.5;
 
+      // Frenado suave al aproximarse al radio máximo individual (evita golpear paredes)
+      const proximity = Math.min(1.0, distCenter / targetMaxRadius);
+      const radialBrake = Math.max(0.0, 1.0 - Math.pow(proximity, 2.5));
+
       // Inestabilidad acumulativa por ciclo
-      const cycleInstability = 1.0 + this.cycleIndex * 0.35;
-      const blastSpeed = (this.shockwave * 16.0 + 9.0) * reachMultiplier * blastDecay * cycleInstability;
+      const cycleInstability = 1.0 + this.cycleIndex * 0.30;
+      const blastSpeed = (this.shockwave * 7.5 + 4.0) * reachMultiplier * blastDecay * cycleInstability * radialBrake;
 
       const blastAngle = angleCenter + angleDeviation;
       agent.x += Math.cos(blastAngle) * blastSpeed;
       agent.y += Math.sin(blastAngle) * blastSpeed;
 
-      // Curvatura de trazo de tinta disparada (crea estelas curvadas orgánicas)
+      // Curvatura de trazo de tinta disparada (forma estelas curvadas que giran antes del borde)
       const streakCurl = (seedVal > 0.48 ? 1 : -1) * (0.35 + seedVal * 0.45);
       agent.angle = blastAngle + streakCurl;
 
     } else {
       // --- ATRACCIÓN GRAVITATORIA DE RETORNO HACIA EL CENTRO & REFORMACIÓN DEL VACÍO ---
-
-      // En el ciclo final (Ciclo 4, t >= 172.2s), el agujero negro FALLA en reformarse:
-      // Las partículas se quedan dispersas y derivan lentamente por el lienzo en calma.
       if (this.cycleIndex >= 4) {
         const driftSpeed = 1.4;
         const turbulentField = noise(agent.x * 0.005, agent.y * 0.005, frameCount * 0.003) * TWO_PI * 1.8;
@@ -394,7 +441,6 @@ class BlackHoleExplosionController {
       }
 
       // Vacío reformado objetivo (crece ligeramente con cada ciclo debido a la inestabilidad)
-      const minCanvas = Math.min(width, height);
       const reformedVoidRadius = minCanvas * (0.11 + 0.025 * this.cycleIndex);
 
       if (distCenter < reformedVoidRadius) {
@@ -474,10 +520,10 @@ class ChoreographyEngine {
         depositAlpha: 38,
         evaporationRate: 7.0, // 60%+ espacio negativo entre corrientes
         diffusionRate: 0.7,
-        burgundyRatio: 0.02,  // Trazo inicial casi imperceptible
+        burgundyRatio: 0.05,  // Trazo inicial sutil de borgoña en agua
         theme: 'light',
         motionMode: 'streams',
-        description: 'Tinta en agua: 3 a 4 corrientes sinuosas laminares con amplias franjas de espacio vacío'
+        description: 'Tinta en agua: 3 ríos orgánicos con direcciones diferenciadas y amplio espacio negativo'
       },
       {
         id: 2,
@@ -502,22 +548,22 @@ class ChoreographyEngine {
       {
         id: 3,
         roman: 'IV',
-        name: 'FEATHERS',
+        name: 'SUSPENDED INK',
         tag: '0:58 – 1:18',
         startTime: 58.0,
         endTime: 78.0,
         bg: { r: 8, g: 8, b: 8 }, // Fondo negro
-        targetCount: 60,
+        targetCount: 85,
         targetCleaners: 20,
         speed: 1.3,
-        depositRadius: 1.2,
-        depositAlpha: 26,
-        evaporationRate: 7.2, // 75%+ espacio negativo
+        depositRadius: 1.6,
+        depositAlpha: 38,
+        evaporationRate: 6.8, // 70%+ espacio negativo
         diffusionRate: 0.65,
-        burgundyRatio: 0.0,
-        theme: 'dark_swan',
-        motionMode: 'feathers',
-        description: 'Plumas & humo: deriva lenta etérea con suave balanceo pendular y gran vacío oscuro'
+        burgundyRatio: 0.04,  // Acento borgoña muy sutil
+        theme: 'dark_ink',
+        motionMode: 'suspended',
+        description: 'Tinta suspendida: partículas flotando en agua con suave deriva y contención interior'
       },
       {
         id: 4,
@@ -534,7 +580,7 @@ class ChoreographyEngine {
         depositAlpha: 50,
         evaporationRate: 7.5,
         diffusionRate: 0.55,
-        burgundyRatio: 0.12, // Inicio sutil de racimos y venas borgoña
+        burgundyRatio: 0.14, // Inicio sutil de racimos y venas borgoña
         theme: 'dark_ink',
         motionMode: 'contamination',
         description: 'Contaminación: vórtices gemelos entrelazados y primeras venas de tinta borgoña'
@@ -562,22 +608,22 @@ class ChoreographyEngine {
       {
         id: 6,
         roman: 'VII',
-        name: 'BLACK HOLE',
+        name: 'BLACK HOLE EXPLOSION',
         tag: '2:03 – 2:14',
         startTime: 123.0,
         endTime: 134.0,
-        bg: { r: 4, g: 4, b: 4 }, // Negro obsidiana profundo
-        targetCount: 195,          // Rango estricto 180-240
+        bg: { r: 2, g: 2, b: 2 }, // Negro cósmico puro
+        targetCount: 200,          // Conteo estable (180-240)
         targetCleaners: 25,
-        speed: 5.2,
-        depositRadius: 2.3,
-        depositAlpha: 64,
-        evaporationRate: 9.0,     // Decaimiento continuo de trazos (45% espacio negativo)
+        speed: 6.8,
+        depositRadius: 2.5,
+        depositAlpha: 70,
+        evaporationRate: 9.8,     // Disipación ultra-rápida de trazos viejos: estelas nítidas y espacio vacío
         diffusionRate: 0.35,
-        burgundyRatio: 0.18,      // Mayormente negro, ~18% borgoña contenida, ~4% destellos blancos
+        burgundyRatio: 0.20,
         theme: 'dark_ink',
-        motionMode: 'black_hole',
-        description: 'Primer Gran Clímax: agujero negro vivo con vacío central, respiración por contracción/expansión y turbulencia de tinta'
+        motionMode: 'explosion',
+        description: 'Primer Gran Clímax: supernova violenta irregular contenida dentro del lienzo y rebote gravitatorio'
       },
       {
         id: 7,
@@ -622,22 +668,22 @@ class ChoreographyEngine {
       {
         id: 9,
         roman: 'X',
-        name: 'BLACK HOLE EXPLOSION',
+        name: 'BLACK HOLE',
         tag: '2:40 – 2:55',
         startTime: 160.0,
         endTime: 175.5,
-        bg: { r: 2, g: 2, b: 2 }, // Negro cósmico puro
-        targetCount: 200,          // Conteo estable (180-240)
+        bg: { r: 4, g: 4, b: 4 }, // Negro obsidiana profundo
+        targetCount: 195,          // Rango estricto 180-240
         targetCleaners: 25,
-        speed: 6.8,
-        depositRadius: 2.5,
-        depositAlpha: 70,
-        evaporationRate: 9.8,     // Disipación ultra-rápida de trazos viejos: estelas nítidas y espacio vacío
+        speed: 5.2,
+        depositRadius: 2.3,
+        depositAlpha: 64,
+        evaporationRate: 9.0,     // Decaimiento continuo de trazos (45% espacio negativo)
         diffusionRate: 0.35,
-        burgundyRatio: 0.20,
+        burgundyRatio: 0.18,      // Mayormente negro, ~18% borgoña contenida
         theme: 'dark_ink',
-        motionMode: 'explosion',
-        description: 'Segundo Gran Clímax: supernova violenta irregular, rebote gravitatorio cíclico y dispersión final'
+        motionMode: 'black_hole',
+        description: 'Segundo Gran Clímax: agujero negro vivo con vacío central, respiración por contracción/expansión y turbulencia de tinta'
       },
       {
         id: 10,
@@ -649,15 +695,15 @@ class ChoreographyEngine {
         bg: { r: 8, g: 8, b: 8 }, // Fondo oscuro
         targetCount: 50,
         targetCleaners: 15,
-        speed: 1.4,
-        depositRadius: 1.3,
-        depositAlpha: 30,
-        evaporationRate: 7.4, // 75%+ espacio negativo
-        diffusionRate: 0.65,
-        burgundyRatio: 0.08,
+        speed: 1.65,
+        depositRadius: 2.4,       // Escala 1.5x a 1.8x para alta legibilidad de fragmentos pesados
+        depositAlpha: 52,         // Tinta densa y claramente visible
+        evaporationRate: 6.2,     // Estelas más perceptibles y largas
+        diffusionRate: 0.60,
+        burgundyRatio: 0.12,
         theme: 'dark_ink',
         motionMode: 'collapse',
-        description: 'Colapso cinético: movimiento agotado, pesado y desacelerado hacia la calma'
+        description: 'Colapso cinético: fragmentos pesados, exhaustos y claramente legibles con suave inercia gravitatoria'
       },
       {
         id: 11,
@@ -667,17 +713,17 @@ class ChoreographyEngine {
         startTime: 188.0,
         endTime: 215.0,
         bg: { r: 245, g: 245, b: 245 }, // Retorno a blanco alabastro
-        targetCount: 20,
-        targetCleaners: 10,
-        speed: 0.4,
-        depositRadius: 0.9,
-        depositAlpha: 16,
-        evaporationRate: 6.5, // 90%+ espacio negativo
-        diffusionRate: 0.8,
+        targetCount: 55,          // Presencia amplia de 45-70 partículas con abundante espacio negativo
+        targetCleaners: 15,
+        speed: 0.75,              // Movimiento visible, calmado y pesado
+        depositRadius: 2.8,       // Partículas sustancialmente más grandes (3–6 px, ocasionales 6–8 px)
+        depositAlpha: 45,         // Claramente identificables a primera vista
+        evaporationRate: 5.8,     // Estelas delicadas y perceptibles
+        diffusionRate: 0.75,
         burgundyRatio: 0.0,
         theme: 'light',
         motionMode: 'still',
-        description: 'Último aliento: quietud casi absoluta y desvanecimiento final sobre fondo blanco'
+        description: 'Último aliento: fragmentos dispersos por todo el espacio con suave deriva sobre blanco alabastro'
       }
     ];
 
@@ -745,16 +791,15 @@ class ChoreographyEngine {
     // 3. Interpolar parámetros de forma continua
     this.interpolateParameters(currState, nextState, blendT);
 
-    // 4. Actualizar controladores dedicados de clímax
+    // 4. Actualizar controladores dedicados de clímax (Swapped: Explosion en 2:03, Black Hole en 2:42)
     const canvasMinDim = typeof width !== 'undefined' ? Math.min(width, height) : 800;
 
-    if (currState.motionMode === 'black_hole' || activeIdx === 6) {
-      const tRel = Math.max(0, this.currentTime - currState.startTime);
-      this.blackHoleController.update(tRel, canvasMinDim);
+    if (currState.motionMode === 'explosion' || activeIdx === 6 || (this.currentTime >= 121.5 && this.currentTime <= 134.0)) {
+      this.explosionController.update(this.currentTime);
     }
 
-    if (currState.motionMode === 'explosion' || activeIdx === 9) {
-      this.explosionController.update(this.currentTime);
+    if (currState.motionMode === 'black_hole' || activeIdx === 9 || (this.currentTime >= 160.0 && this.currentTime <= 175.5)) {
+      this.blackHoleController.update(this.currentTime, canvasMinDim);
     }
   }
 
@@ -789,6 +834,27 @@ class ChoreographyEngine {
     const idx = Math.max(0, Math.min(this.states.length - 1, stateIndex));
     this.manualOverride = false;
     this.manualStateIndex = idx;
+
+    // Si se salta directamente al Estado 12 (Final Breath), distribuir ampliamente por el 70-85% del lienzo
+    if (idx === 11 && typeof agents !== 'undefined' && agents.length > 0) {
+      for (let i = 0; i < agents.length; i++) {
+        agents[i].x = width * (0.12 + Math.random() * 0.76);
+        agents[i].y = height * (0.12 + Math.random() * 0.76);
+        agents[i].prevX = agents[i].x;
+        agents[i].prevY = agents[i].y;
+        agents[i].angle = Math.random() * Math.PI * 2;
+      }
+    } else if (idx === 3 && typeof agents !== 'undefined' && agents.length > 0) {
+      // Estado 4 (Suspended Ink): distribuir en el 70-80% interior
+      for (let i = 0; i < agents.length; i++) {
+        agents[i].x = width * (0.15 + Math.random() * 0.70);
+        agents[i].y = height * (0.15 + Math.random() * 0.70);
+        agents[i].prevX = agents[i].x;
+        agents[i].prevY = agents[i].y;
+        agents[i].angle = Math.random() * Math.PI * 2;
+      }
+    }
+
     return this.states[idx].startTime;
   }
 
@@ -828,19 +894,51 @@ class ChoreographyEngine {
       }
 
       // -----------------------------------------------------------------------
-      // 1. INK IN WATER (0:18–0:38): 3 a 4 corrientes laminares sinuosas
+      // 1. INK IN WATER (0:18–0:38): 3 Ríos / Corrientes Coreografiadas Diferentes
       // -----------------------------------------------------------------------
       case 'streams': {
-        const streamId = (agent.seedOffset || 0) % 4;
-        const baseStreamY = height * (0.20 + streamId * 0.20);
-        const waveOffset = Math.sin(agent.x * 0.005 + frameCount * 0.018 + streamId * 1.6) * 40;
-        const targetY = baseStreamY + waveOffset;
-        const diffY = targetY - agent.y;
+        const riverId = (agent.seedOffset || 0) % 3;
 
-        agent.y += diffY * 0.045;
-        const streamAngle = Math.atan2(Math.cos(agent.x * 0.005) * 0.28, 1.0);
-        const angleDiff = Math.atan2(Math.sin(streamAngle - agent.angle), Math.cos(streamAngle - agent.angle));
-        agent.angle += angleDiff * 0.24;
+        if (riverId === 0) {
+          // Río 1: Corriente diagonal ascendente hacia arriba-derecha (~ -26°)
+          const theta0 = -0.45;
+          const centerline0 = -(agent.x - cx) * Math.sin(theta0) + (agent.y - (cy + height * 0.15)) * Math.cos(theta0);
+          const wave0 = Math.sin(agent.x * 0.005 + frameCount * 0.015) * 36;
+          const diff0 = centerline0 + wave0;
+
+          // Atracción suave a la franja del río
+          agent.x += -Math.sin(theta0) * (-diff0 * 0.038);
+          agent.y += Math.cos(theta0) * (-diff0 * 0.038);
+
+          // Vector de flujo
+          const flowAngle0 = theta0 + Math.sin(agent.x * 0.004 + frameCount * 0.012) * 0.28;
+          const angleDiff = Math.atan2(Math.sin(flowAngle0 - agent.angle), Math.cos(flowAngle0 - agent.angle));
+          agent.angle += angleDiff * 0.25;
+
+        } else if (riverId === 1) {
+          // Río 2: Corriente diagonal descendente hacia abajo-derecha (~ +28°)
+          const theta1 = 0.50;
+          const centerline1 = -(agent.x - cx) * Math.sin(theta1) + (agent.y - (cy - height * 0.15)) * Math.cos(theta1);
+          const wave1 = Math.cos(agent.x * 0.005 + frameCount * 0.014) * 36;
+          const diff1 = centerline1 + wave1;
+
+          agent.x += -Math.sin(theta1) * (-diff1 * 0.038);
+          agent.y += Math.cos(theta1) * (-diff1 * 0.038);
+
+          const flowAngle1 = theta1 + Math.cos(agent.x * 0.004 + frameCount * 0.014) * 0.26;
+          const angleDiff = Math.atan2(Math.sin(flowAngle1 - agent.angle), Math.cos(flowAngle1 - agent.angle));
+          agent.angle += angleDiff * 0.25;
+
+        } else {
+          // Río 3: Corriente sinuosa central que atraviesa hacia la izquierda (~ 170°)
+          const targetY2 = cy + Math.sin(agent.x * 0.004 + frameCount * 0.016) * (height * 0.24);
+          const diffY2 = targetY2 - agent.y;
+          agent.y += diffY2 * 0.042;
+
+          const flowAngle2 = Math.PI - 0.15 + Math.cos(agent.x * 0.004 + frameCount * 0.016) * 0.36;
+          const angleDiff = Math.atan2(Math.sin(flowAngle2 - agent.angle), Math.cos(flowAngle2 - agent.angle));
+          agent.angle += angleDiff * 0.25;
+        }
         break;
       }
 
@@ -865,14 +963,38 @@ class ChoreographyEngine {
       }
 
       // -----------------------------------------------------------------------
-      // 3. FEATHERS (0:58–1:18): Deriva ascendente lenta como humo / plumas
+      // 3. SUSPENDED INK (0:58–1:18): Tinta suspendida en agua con suave deriva y contención
       // -----------------------------------------------------------------------
+      case 'suspended':
       case 'feathers': {
-        const driftAngle = -Math.PI * 0.5 + Math.sin(frameCount * 0.012 + (agent.seedOffset % 50) * 0.1) * 0.38;
-        const angleDelta = Math.atan2(Math.sin(driftAngle - agent.angle), Math.cos(driftAngle - agent.angle));
-        agent.angle += angleDelta * 0.10;
-        agent.x += Math.sin(frameCount * 0.016 + agent.y * 0.008) * 0.35;
-        agent.y -= 0.28; // Elevación térmica lenta
+        const noiseAngle = noise(
+          agent.x * 0.0025 + (agent.seedOffset % 500) * 0.05,
+          agent.y * 0.0025 + (agent.seedOffset % 500) * 0.05,
+          frameCount * 0.0025
+        ) * TWO_PI * 2.0;
+
+        const angleDiff = Math.atan2(Math.sin(noiseAngle - agent.angle), Math.cos(noiseAngle - agent.angle));
+        agent.angle += angleDiff * 0.07 + (noise(agent.seedOffset, frameCount * 0.008) - 0.5) * 0.06;
+
+        // Contención natural dentro del 70-80% interior del lienzo (sin colisiones ni rebotes)
+        const maxDistX = width * 0.38;
+        const maxDistY = height * 0.38;
+        const offsetX = agent.x - cx;
+        const offsetY = agent.y - cy;
+
+        if (Math.abs(offsetX) > maxDistX) {
+          agent.x -= Math.sign(offsetX) * (Math.abs(offsetX) - maxDistX) * 0.035;
+        }
+        if (Math.abs(offsetY) > maxDistY) {
+          agent.y -= Math.sign(offsetY) * (Math.abs(offsetY) - maxDistY) * 0.035;
+        }
+
+        // Suave giro hacia el interior si se acerca a la frontera (sin colisión)
+        if (Math.abs(offsetX) > maxDistX * 0.85 || Math.abs(offsetY) > maxDistY * 0.85) {
+          const toCenterAngle = Math.atan2(cy - agent.y, cx - agent.x);
+          const inwardDiff = Math.atan2(Math.sin(toCenterAngle - agent.angle), Math.cos(toCenterAngle - agent.angle));
+          agent.angle += inwardDiff * 0.04;
+        }
         break;
       }
 
@@ -923,10 +1045,10 @@ class ChoreographyEngine {
       }
 
       // -----------------------------------------------------------------------
-      // 6. PRIMER CLÍMAX — 2:03: EL AGUJERO NEGRO VIVO (Controlador Dedicado)
+      // 6. PRIMER CLÍMAX — 2:03: SUPERNOVA / EXPLOSIÓN (Swapped to 1st Climax)
       // -----------------------------------------------------------------------
-      case 'black_hole': {
-        this.blackHoleController.applyForces(agent, isCleaner, cx, cy, audioData);
+      case 'explosion': {
+        this.explosionController.applyForces(agent, isCleaner, cx, cy, audioData);
         break;
       }
 
@@ -954,30 +1076,56 @@ class ChoreographyEngine {
       }
 
       // -----------------------------------------------------------------------
-      // 9. SEGUNDO CLÍMAX — 2:42: SUPERNOVA / EXPLOSIÓN (Controlador Dedicado)
+      // 9. SEGUNDO CLÍMAX — 2:42: EL AGUJERO NEGRO VIVO (Swapped to 2nd Climax)
       // -----------------------------------------------------------------------
-      case 'explosion': {
-        this.explosionController.applyForces(agent, isCleaner, cx, cy, audioData);
+      case 'black_hole': {
+        this.blackHoleController.applyForces(agent, isCleaner, cx, cy, audioData);
         break;
       }
 
       // -----------------------------------------------------------------------
-      // 10. COLLAPSE (2:55–3:08): Movimiento agotado, pesado y desacelerado
+      // 10. COLLAPSE (2:55–3:08): Fragmentos pesados, exhaustos y claramente visibles
       // -----------------------------------------------------------------------
       case 'collapse': {
-        agent.angle += (Math.random() - 0.5) * 0.12;
-        const slowPull = Math.min(1.2, distCenter * 0.004);
+        const heavyDrift = noise(agent.x * 0.0035, agent.y * 0.0035, frameCount * 0.002) * TWO_PI * 1.5;
+        const angleDiff = Math.atan2(Math.sin(heavyDrift - agent.angle), Math.cos(heavyDrift - agent.angle));
+        agent.angle += angleDiff * 0.07;
+
+        // Inercia pesada con suave gravedad residual
+        const slowPull = Math.min(0.75, distCenter * 0.0025);
         agent.x -= Math.cos(angleCenter) * slowPull;
         agent.y -= Math.sin(angleCenter) * slowPull;
         break;
       }
 
       // -----------------------------------------------------------------------
-      // 11. FINAL BREATH (3:08–3:18+): Quietud casi absoluta sobre fondo blanco
+      // 11. FINAL BREATH (3:08–3:18+): Quietud y amplia dispersión sobre blanco alabastro
       // -----------------------------------------------------------------------
       case 'still':
       default: {
-        agent.angle += (Math.random() - 0.5) * 0.03;
+        // Deriva amplia, pesada y tranquila a través del 70-85% del lienzo
+        const broadFlow = noise(
+          agent.x * 0.0018 + (agent.seedOffset % 100) * 0.1,
+          agent.y * 0.0018 + (agent.seedOffset % 100) * 0.1,
+          frameCount * 0.0015
+        ) * TWO_PI * 1.6;
+
+        const angleDiff = Math.atan2(Math.sin(broadFlow - agent.angle), Math.cos(broadFlow - agent.angle));
+        agent.angle += angleDiff * 0.04;
+
+        // Suave dispersión hacia el 70-85% del lienzo si están muy concentradas
+        if (distCenter < Math.min(width, height) * 0.22) {
+          agent.x += Math.cos(angleCenter) * 0.45;
+          agent.y += Math.sin(angleCenter) * 0.45;
+        }
+
+        // Contención suave en 85% del lienzo
+        const maxBoundX = width * 0.42;
+        const maxBoundY = height * 0.42;
+        const offX = agent.x - cx;
+        const offY = agent.y - cy;
+        if (Math.abs(offX) > maxBoundX) agent.x -= Math.sign(offX) * (Math.abs(offX) - maxBoundX) * 0.02;
+        if (Math.abs(offY) > maxBoundY) agent.y -= Math.sign(offY) * (Math.abs(offY) - maxBoundY) * 0.02;
         break;
       }
     }

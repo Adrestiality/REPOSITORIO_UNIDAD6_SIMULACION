@@ -170,21 +170,23 @@ class Agent {
     const particleLength = particleWidth * this.aspectRatio;
 
     // 2. Asignación de Color de Alto Contraste
-    const clusterMetric = (this.variation * 0.55 + noise(this.x * 0.0035, this.y * 0.0035, (this.seedOffset % 50) * 0.05) * 0.45);
-    const isBurgundy = burgundyRatio > 0.001 && (clusterMetric < burgundyRatio);
-    const isWhiteHighlight = this.variation < 0.14; // ~14% partículas blanco brillante
+    // Deterministic selection based on particle seed for exact percentage
+    const particleColorSeed = (this.seedOffset % 1000) / 1000.0;
+    const isBurgundy = burgundyRatio > 0.001 && (particleColorSeed < burgundyRatio);
+    const isWhiteHighlight = !isBurgundy && (this.variation < 0.14); // ~14% partículas blanco brillante
 
     let colR = 0, colG = 0, colB = 0;
     let mainAlpha = Math.min(255, (choreoParams.depositAlpha || 65) * 1.5 * stepWeight);
 
     if (isDarkBg) {
-      // === FONDO OSCURO / NEGRO: PARTÍCULAS ALTAMENTE CONTRASTANTES ===
-      if (isWhiteHighlight || theme === 'dark_swan') {
+      // === FONDO OSCURO / NEGRO ===
+      if (isBurgundy) {
+        // Tinta borgoña / vino sobria y claramente visible sobre fondo oscuro (#ba2642)
+        // Rojo vino contenido (como tinta roja contaminando tinta negra/blanca, NO neon)
+        colR = 186; colG = 38; colB = 66;
+      } else if (isWhiteHighlight || theme === 'dark_swan') {
         // Blanco puro luminoso
         colR = 255; colG = 255; colB = 255;
-      } else if (isBurgundy) {
-        // Tinta borgoña viva y contrastante (#d41e45)
-        colR = 212; colG = 30; colB = 69;
       } else {
         // Gris claro plateado / blanco roto (#dcdfe6)
         if (this.scaleCategory === 'tiny') {
@@ -194,10 +196,10 @@ class Agent {
         }
       }
     } else {
-      // === FONDO BLANCO / CLARO: TINTA NEGRA & BORGOÑA PROFUNDO ===
+      // === FONDO BLANCO / CLARO ===
       if (isBurgundy) {
-        // Tinta borgoña profunda (#6b0b1f)
-        colR = 107; colG = 11; colB = 31;
+        // Tinta borgoña profunda visible en agua clara (#82162e)
+        colR = 130; colG = 22; colB = 46;
       } else {
         // Tinta china negra (#0e0e0e)
         colR = 14; colG = 14; colB = 14;
@@ -207,7 +209,7 @@ class Agent {
     // --- 3. DIBUJO DE ESTELA FINA & NÍTIDA (particle -> short visible ink trail) ---
     const trailDist = Math.hypot(this.x - this.prevX, this.y - this.prevY);
     if (trailDist > 0.1 && trailDist < 80) {
-      buffer.stroke(colR, colG, colB, mainAlpha * 0.65);
+      buffer.stroke(colR, colG, colB, mainAlpha * (isBurgundy ? 0.85 : 0.65));
       buffer.strokeWeight(Math.max(0.8, particleWidth * 0.65));
       buffer.line(this.prevX, this.prevY, this.x, this.y);
     }

@@ -185,12 +185,24 @@ function syncPopulationCounts() {
   // Ajuste suave de tinta (máximo 2 por frame para evitar tirones)
   if (agents.length < targetAgents) {
     const toAdd = Math.min(2, targetAgents - agents.length);
+    const mode = choreographyEngine.currentParams.motionMode;
     const cx = width / 2;
     const cy = height / 2;
     for (let i = 0; i < toAdd; i++) {
-      const r = random(5, min(width, height) * 0.20);
-      const theta = random(TWO_PI);
-      agents.push(new Agent(cx + Math.cos(theta) * r, cy + Math.sin(theta) * r, theta));
+      let x, y, theta = random(TWO_PI);
+      if (mode === 'still') {
+        // Distribuir orgánicamente a través del 70–85% del lienzo en todos los cuadrantes
+        x = width * random(0.12, 0.88);
+        y = height * random(0.12, 0.88);
+      } else if (mode === 'suspended') {
+        x = cx + (random() - 0.5) * width * 0.70;
+        y = cy + (random() - 0.5) * height * 0.70;
+      } else {
+        const r = random(5, min(width, height) * 0.20);
+        x = cx + Math.cos(theta) * r;
+        y = cy + Math.sin(theta) * r;
+      }
+      agents.push(new Agent(x, y, theta));
     }
   } else if (agents.length > targetAgents) {
     const toRemove = Math.min(2, agents.length - targetAgents);
@@ -284,12 +296,21 @@ function initAgents(initialCount = 75) {
   agents = [];
   const cx = width / 2;
   const cy = height / 2;
+  const mode = (choreographyEngine && choreographyEngine.currentParams) ? choreographyEngine.currentParams.motionMode : 'birth';
 
   for (let i = 0; i < initialCount; i++) {
-    const r = random(5, min(width, height) * 0.18);
-    const theta = random(TWO_PI);
-    const x = cx + Math.cos(theta) * r;
-    const y = cy + Math.sin(theta) * r;
+    let x, y, theta = random(TWO_PI);
+    if (mode === 'still') {
+      x = width * random(0.12, 0.88);
+      y = height * random(0.12, 0.88);
+    } else if (mode === 'suspended') {
+      x = cx + (random() - 0.5) * width * 0.70;
+      y = cy + (random() - 0.5) * height * 0.70;
+    } else {
+      const r = random(5, min(width, height) * 0.18);
+      x = cx + Math.cos(theta) * r;
+      y = cy + Math.sin(theta) * r;
+    }
     agents.push(new Agent(x, y, theta + random(-0.3, 0.3)));
   }
 }

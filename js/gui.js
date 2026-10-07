@@ -97,11 +97,11 @@ class SimulationGUI {
       .name('Tiempo Audio')
       .listen();
 
-    choreoFolder.add(this.params, 'jumpIntro').name('⏭ 0:00 Mandalas de Paz');
-    choreoFolder.add(this.params, 'jumpFirstTension').name('⏭ 1:01 Ondas de Choque');
-    choreoFolder.add(this.params, 'jumpBlackHole').name('⏭ 2:03 AGUJERO NEGRO (Vivo)');
-    choreoFolder.add(this.params, 'jumpSupernova').name('⏭ 2:42 SUPERNOVA (Cíclica)');
-    choreoFolder.add(this.params, 'jumpOutro').name('⏭ 3:03 Descenso Etéreo');
+    choreoFolder.add(this.params, 'jumpIntro').name('⏭ 0:00 Nacimiento de Tinta');
+    choreoFolder.add(this.params, 'jumpFirstTension').name('⏭ 0:58 Tinta Suspendida');
+    choreoFolder.add(this.params, 'jumpBlackHole').name('⏭ 2:03 SUPERNOVA (Explosión)');
+    choreoFolder.add(this.params, 'jumpSupernova').name('⏭ 2:42 AGUJERO NEGRO (Vivo)');
+    choreoFolder.add(this.params, 'jumpOutro').name('⏭ 3:08 Último Aliento');
     choreoFolder.open();
 
     // --- CARPETA 2: AUDIO REACTIVO ---
